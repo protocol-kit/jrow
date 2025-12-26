@@ -1,0 +1,74 @@
+[package]
+name = "jrow"
+version = "0.1.0"
+edition = "2021"
+authors = ["artbin"]
+license = "MIT-0 OR CC0-1.0"
+repository = "https://github.com/artbin/jrow"
+
+[workspace]
+members = [
+    "jrow-core",
+    "jrow-server",
+    "jrow-client",
+    "jrow-macros",
+]
+exclude = [
+    "tools/template-gen",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["artbin"]
+license = "MIT-0 OR CC0-1.0"
+repository = "https://github.com/artbin/jrow"
+
+[workspace.dependencies]
+# Core dependencies
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+
+# Async runtime
+tokio = { version = "1.35", features = ["full"] }
+tokio-tungstenite = "0.21"
+futures = "0.3"
+
+# Macros
+syn = { version = "2.0", features = ["full"] }
+quote = "1.0"
+proc-macro2 = "1.0"
+
+# OpenTelemetry (Compatible versions for 2025)
+opentelemetry = "0.30"
+opentelemetry-otlp = { version = "0.30", features = ["trace", "metrics", "logs", "grpc-tonic"] }
+opentelemetry_sdk = { version = "0.30", features = ["rt-tokio", "trace", "metrics", "logs"] }
+opentelemetry-semantic-conventions = "0.30"
+tracing = "0.1"
+tracing-opentelemetry = "0.31"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Internal crates
+jrow-core = { path = "jrow-core" }
+jrow-server = { path = "jrow-server" }
+jrow-client = { path = "jrow-client" }
+jrow-macros = { path = "jrow-macros" }
+
+[dependencies]
+jrow-core = { path = "jrow-core" }
+jrow-server = { path = "jrow-server" }
+jrow-client = { path = "jrow-client" }
+jrow-macros = { path = "jrow-macros" }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+async-trait = "0.1"
+chrono = "0.4"
+tracing-subscriber = { workspace = true }
+warp = "0.3"
+

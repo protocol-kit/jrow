@@ -1,0 +1,39 @@
+# Multi-stage Dockerfile for {{ project.name }}
+# Generated from JROW templates
+
+FROM rust:{{ project.rust_version }} as builder
+
+WORKDIR /usr/src/app
+
+# Copy workspace files
+COPY Cargo.toml Cargo.lock ./
+COPY src ./src
+
+# Build the application in release mode
+RUN cargo build --release
+
+# Runtime stage
+FROM debian:bookworm-slim
+
+# Install necessary runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the built binary
+COPY --from=builder /usr/src/app/target/release/{{ project.name }} /usr/local/bin/app
+
+# Expose ports
+{% for port in docker.expose_ports -%}
+EXPOSE {{ port }}
+{% endfor %}
+
+# Set environment variables
+ENV RUST_LOG=info
+ENV BIND_ADDRESS={{ server.bind_address }}:{{ server.port }}
+
+# Run the application
+CMD ["app"]
+
+
+

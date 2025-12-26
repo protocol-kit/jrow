@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ project.name }}-config
+  namespace: {{ kubernetes.namespace }}
+data:
+  # Server configuration
+  bind_address: "{{ bind_full }}"
+  
+  # Batch processing mode (Parallel or Sequential)
+  batch_mode: "{{ server.batch_mode }}"
+  
+  # Connection settings
+  max_connections: "{{ server.max_connections }}"
+  connection_timeout: "{{ server.connection_timeout }}"
+  
+  # Logging configuration
+  rust_log: "info"
+
+
+

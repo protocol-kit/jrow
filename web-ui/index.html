@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JROW Web Client</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔌 JROW Web Client</h1>
+            <p class="subtitle">JSON-RPC 2.0 over WebSocket Test Client</p>
+        </header>
+
+        <!-- Connection Panel -->
+        <section class="connection-panel">
+            <div class="input-group">
+                <label for="wsUrl">WebSocket URL:</label>
+                <input type="text" id="wsUrl" placeholder="ws://127.0.0.1:8081" value="ws://127.0.0.1:8081">
+                <small style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px; display: block;">
+                    💡 Run <code style="background: var(--input-bg); padding: 2px 6px; border-radius: 3px;">make run-server-ui</code> for instant setup on ws://127.0.0.1:8081
+                </small>
+            </div>
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="connect()">
+                    <span class="icon">🔗</span> Connect
+                </button>
+                <button class="btn btn-secondary" onclick="disconnect()">
+                    <span class="icon">🔌</span> Disconnect
+                </button>
+            </div>
+            <div id="status" class="status disconnected">
+                <span class="status-indicator"></span>
+                <span class="status-text">Disconnected</span>
+            </div>
+        </section>
+
+        <!-- Tabs -->
+        <nav class="tabs">
+            <button class="tab active" onclick="switchTab('request')">
+                <span class="icon">📤</span> Request
+            </button>
+            <button class="tab" onclick="switchTab('notify')">
+                <span class="icon">📨</span> Notify
+            </button>
+            <button class="tab" onclick="switchTab('subscribe')">
+                <span class="icon">📡</span> Subscribe
+            </button>
+            <button class="tab" onclick="switchTab('persistent')">
+                <span class="icon">💾</span> Persistent
+            </button>
+            <button class="tab" onclick="switchTab('batch')">
+                <span class="icon">📦</span> Batch
+            </button>
+            <button class="tab" onclick="switchTab('serverlogs')">
+                <span class="icon">📋</span> Server Logs
+            </button>
+            <button class="tab" onclick="switchTab('console')">
+                <span class="icon">🖥️</span> Console
+            </button>
+        </nav>
+
+        <!-- Request Panel -->
+        <section id="request" class="panel active">
+            <h2>Send Request</h2>
+            <p class="panel-description">Send a JSON-RPC request and receive a response</p>
+            
+            <div class="form-group">
+                <label for="reqMethod">Method:</label>
+                <input type="text" id="reqMethod" value="echo" placeholder="method.name">
+            </div>
+            
+            <div class="form-group">
+                <label for="reqParams">Parameters (JSON):</label>
+                <textarea id="reqParams" rows="8" placeholder='{"key": "value"}'>{"message": "Hello JROW!"}</textarea>
+            </div>
+            
+            <button class="btn btn-primary" onclick="sendRequest()">
+                <span class="icon">▶️</span> Send Request
+            </button>
+            
+            <div class="response-section">
+                <h3>Response:</h3>
+                <pre id="reqResponse" class="response-box">No response yet</pre>
+            </div>
+        </section>
+
+        <!-- Notify Panel -->
+        <section id="notify" class="panel">
+            <h2>Send Notification</h2>
+            <p class="panel-description">Send a one-way notification (no response expected)</p>
+            
+            <div class="form-group">
+                <label for="notifyMethod">Method:</label>
+                <input type="text" id="notifyMethod" value="log" placeholder="method.name">
+            </div>
+            
+            <div class="form-group">
+                <label for="notifyParams">Parameters (JSON):</label>
+                <textarea id="notifyParams" rows="8" placeholder='{"key": "value"}'>{"level": "info", "message": "Test notification"}</textarea>
+            </div>
+            
+            <button class="btn btn-primary" onclick="sendNotification()">
+                <span class="icon">▶️</span> Send Notification
+            </button>
+            
+            <div class="info-box">
+                <strong>ℹ️ Note:</strong> Notifications do not expect a response from the server.
+            </div>
+        </section>
+
+        <!-- Subscribe Panel -->
+        <section id="subscribe" class="panel">
+            <h2>Subscribe to Topics</h2>
+            <p class="panel-description">Subscribe to topics and receive real-time notifications</p>
+            
+            <div class="form-group">
+                <label for="subTopic">Topic:</label>
+                <div class="input-with-buttons">
+                    <input type="text" id="subTopic" value="events.*" placeholder="topic.name or pattern.*">
+                    <button class="btn btn-primary" onclick="subscribe()">
+                        <span class="icon">➕</span> Subscribe
+                    </button>
+                    <button class="btn btn-secondary" onclick="unsubscribe()">
+                        <span class="icon">➖</span> Unsubscribe
+                    </button>
+                </div>
+            </div>
+
+            <div class="subscriptions-list">
+                <h3>Active Subscriptions:</h3>
+                <div id="activeSubscriptions" class="subscription-items">
+                    <em class="empty-state">No active subscriptions</em>
+                </div>
+            </div>
+            
+            <div class="messages-section">
+                <div class="messages-header">
+                    <h3>Received Messages:</h3>
+                    <button class="btn btn-small" onclick="clearSubscriptionMessages()">Clear</button>
+                </div>
+                <div id="subMessages" class="message-list"></div>
+            </div>
+
+            <div class="info-box">
+                <strong>💡 Pattern Examples:</strong><br>
+                • <code>events.*</code> - matches events.user, events.admin<br>
+                • <code>events.&gt;</code> - matches events.user.login, events.user.logout, etc.<br>
+                • <code>stock.prices.*</code> - matches all stock prices
+            </div>
+        </section>
+
+        <!-- Persistent Subscriptions Panel -->
+        <section id="persistent" class="panel">
+            <h2>Persistent Subscriptions</h2>
+            <p class="panel-description">Exactly-once delivery with durable storage and acknowledgments</p>
+            
+            <div class="form-group">
+                <label for="persistentTopic">Topic:</label>
+                <input type="text" id="persistentTopic" value="persistent.events" placeholder="topic.name">
+            </div>
+            
+            <div class="form-group">
+                <label for="subscriptionId">Subscription ID:</label>
+                <input type="text" id="subscriptionId" value="my-subscription" placeholder="unique-subscription-id">
+            </div>
+
+            <div class="input-with-buttons">
+                <button class="btn btn-primary" onclick="subscribePersistent()">
+                    <span class="icon">➕</span> Subscribe Persistent
+                </button>
+                <button class="btn btn-secondary" onclick="unsubscribePersistent()">
+                    <span class="icon">➖</span> Unsubscribe
+                </button>
+            </div>
+
+            <div class="subscriptions-list">
+                <h3>Active Persistent Subscriptions:</h3>
+                <div id="activePersistentSubscriptions" class="subscription-items">
+                    <em class="empty-state">No active persistent subscriptions</em>
+                </div>
+            </div>
+            
+            <div class="messages-section">
+                <div class="messages-header">
+                    <h3>Persistent Messages (Unacknowledged):</h3>
+                    <button class="btn btn-small" onclick="clearPersistentMessages()">Clear</button>
+                </div>
+                <div id="persistentMessages" class="message-list"></div>
+            </div>
+
+            <div class="info-box">
+                <strong>💡 How it works:</strong><br>
+                • Messages are stored durably in database<br>
+                • Exactly-once delivery guaranteed<br>
+                • Must acknowledge each message with sequence number<br>
+                • Unacknowledged messages will be redelivered<br>
+                • Click "✓ Ack" button to acknowledge a message
+            </div>
+        </section>
+
+        <!-- Batch Panel -->
+        <section id="batch" class="panel">
+            <h2>Batch Requests</h2>
+            <p class="panel-description">Send multiple requests in a single message</p>
+            
+            <div class="form-group">
+                <label for="batchJson">Batch Requests (JSON Array):</label>
+                <textarea id="batchJson" rows="12">[
+  {
+    "jsonrpc": "2.0",
+    "method": "add",
+    "params": {"a": 5, "b": 3},
+    "id": 1
+  },
+  {
+    "jsonrpc": "2.0",
+    "method": "multiply",
+    "params": {"a": 2, "b": 4},
+    "id": 2
+  },
+  {
+    "jsonrpc": "2.0",
+    "method": "notify_log",
+    "params": {"message": "Batch sent"}
+  }
+]</textarea>
+            </div>
+            
+            <button class="btn btn-primary" onclick="sendBatch()">
+                <span class="icon">▶️</span> Send Batch
+            </button>
+            
+            <div class="response-section">
+                <h3>Response:</h3>
+                <pre id="batchResponse" class="response-box">No response yet</pre>
+            </div>
+
+            <div class="info-box">
+                <strong>ℹ️ Note:</strong> Notifications in the batch (without "id" field) won't receive responses.
+            </div>
+        </section>
+
+        <!-- Server Logs Panel -->
+        <section id="serverlogs" class="panel">
+            <h2>Server Logs</h2>
+            <p class="panel-description">Real-time logs pushed from the server</p>
+            
+            <div class="console-controls">
+                <button class="btn btn-primary" onclick="subscribeToServerLogs()">
+                    <span class="icon">🔔</span> Subscribe to Logs
+                </button>
+                <button class="btn btn-secondary" onclick="unsubscribeFromServerLogs()">
+                    <span class="icon">🔕</span> Unsubscribe
+                </button>
+                <button class="btn btn-secondary" onclick="clearServerLogs()">
+                    <span class="icon">🗑️</span> Clear Logs
+                </button>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="serverLogsAutoscroll" checked>
+                    Auto-scroll
+                </label>
+            </div>
+
+            <div class="log-stats">
+                <div class="stat-item">
+                    <span class="stat-label">Status:</span>
+                    <span id="serverLogsStatus" class="stat-value">Not subscribed</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Total logs:</span>
+                    <span id="serverLogsCount" class="stat-value">0</span>
+                </div>
+            </div>
+            
+            <div id="serverLogsContainer" class="server-logs-container"></div>
+
+            <div class="info-box">
+                <strong>💡 How it works:</strong><br>
+                Server pushes log messages to all subscribed clients in real-time.<br>
+                Subscribe to see server events: connections, RPC calls, notifications, pub/sub activity, etc.
+            </div>
+        </section>
+
+        <!-- Console Panel -->
+        <section id="console" class="panel">
+            <h2>Message Console</h2>
+            <p class="panel-description">Real-time log of all WebSocket messages</p>
+            
+            <div class="console-controls">
+                <button class="btn btn-secondary" onclick="clearConsole()">
+                    <span class="icon">🗑️</span> Clear Console
+                </button>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="autoscroll" checked>
+                    Auto-scroll
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="showTimestamps" checked>
+                    Timestamps
+                </label>
+            </div>
+            
+            <div id="consoleLog" class="console-log"></div>
+        </section>
+    </div>
+
+    <footer>
+        <p>
+            JROW - JSON-RPC over WebSocket | 
+            <a href="https://github.com/artbin/jrow" target="_blank">GitHub</a> |
+            <a href="../docs/SPECIFICATION.md">Specification</a>
+        </p>
+    </footer>
+
+    <script src="jrow-client.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
+

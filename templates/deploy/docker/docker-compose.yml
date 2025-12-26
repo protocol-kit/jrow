@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  # Simple server example
+  simple-server:
+    build:
+      context: ../../..
+      dockerfile: templates/deploy/docker/Dockerfile
+    ports:
+      - "8080:8080"
+    command: simple_server
+    restart: unless-stopped
+
+  # Pub/Sub server example
+  pubsub-server:
+    build:
+      context: ../../..
+      dockerfile: templates/deploy/docker/Dockerfile
+    ports:
+      - "9000:9000"
+    command: pubsub
+    restart: unless-stopped
+
+  # Bidirectional communication example
+  bidirectional:
+    build:
+      context: ../../..
+      dockerfile: templates/deploy/docker/Dockerfile
+    ports:
+      - "9001:9001"
+    command: bidirectional
+    restart: unless-stopped
+

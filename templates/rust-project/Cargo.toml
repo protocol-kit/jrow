@@ -1,0 +1,56 @@
+[package]
+name = "my-jrow-app"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+authors = ["Your Name <you@example.com>"]
+description = "My JROW-based JSON-RPC application"
+license = "MIT"
+repository = "https://github.com/yourusername/my-jrow-app"
+
+[dependencies]
+# JROW framework
+jrow-core = "0.1"
+jrow-server = "0.1"
+jrow-client = "0.1"
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Error handling
+anyhow = "1"
+thiserror = "1"
+
+# Lazy static (for server start time)
+lazy_static = "1.4"
+
+# Logging (optional, for structured logs without OpenTelemetry)
+# tracing = "0.1"
+# tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Configuration (optional)
+# config = "0.14"
+# dotenv = "0.15"
+
+[dev-dependencies]
+# Testing
+tokio-test = "0.4"
+
+[[bin]]
+name = "server"
+path = "src/bin/server.rs"
+
+[[bin]]
+name = "client"
+path = "src/bin/client.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+

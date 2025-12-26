@@ -1,0 +1,71 @@
+# JROW Template Configuration
+# Copy this file to your project root and customize for your project
+
+[project]
+name = "my-jrow-app"
+description = "My JROW-based application"
+version = "0.1.0"
+rust_version = "1.75"
+license = "MIT"
+license_url = "https://opensource.org/licenses/MIT"
+contact_name = "API Support"
+contact_url = "https://github.com/myuser/my-jrow-app"
+
+[server]
+bind_address = "0.0.0.0"
+port = 8080
+batch_mode = "Parallel"  # or "Sequential"
+max_connections = 1000
+connection_timeout = 300
+
+[docker]
+image_name = "my-jrow-app"
+registry = "docker.io/myuser"  # Optional: Docker registry
+expose_ports = [8080]
+
+[kubernetes]
+namespace = "default"
+replicas = 3
+service_type = "LoadBalancer"  # or "ClusterIP" or "NodePort"
+
+[kubernetes.resources]
+requests_memory = "64Mi"
+requests_cpu = "100m"
+limits_memory = "128Mi"
+limits_cpu = "500m"
+
+[asyncapi]
+# AsyncAPI specification settings
+production_host = "api.example.com"
+production_port = 443
+production_protocol = "wss"  # secure WebSocket
+development_host = "localhost"
+development_port = 8080
+development_protocol = "ws"
+security_enabled = true
+
+# Define your RPC methods
+[[asyncapi.methods]]
+name = "add"
+example_params = '{"a": 5, "b": 3}'
+example_result = "8"
+
+[[asyncapi.methods]]
+name = "multiply"
+example_params = '{"a": 3, "b": 4}'
+example_result = "12"
+
+[[asyncapi.methods]]
+name = "echo"
+example_params = '{"message": "hello"}'
+example_result = '{"echoed": "hello"}'
+
+# Define your pub/sub topics
+[[asyncapi.topics]]
+name = "stock.prices"
+example_params = '{"symbol": "AAPL", "price": 150.0}'
+
+[[asyncapi.topics]]
+name = "chat.messages"
+example_params = '{"user": "alice", "message": "Hello world"}'
+

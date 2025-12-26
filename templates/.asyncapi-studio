@@ -1,0 +1,16 @@
+{
+  "version": "3.0.0",
+  "description": "AsyncAPI Studio configuration for JROW",
+  "autoSaving": {
+    "enabled": true,
+    "interval": 1000
+  },
+  "editor": {
+    "theme": "vs-dark",
+    "fontSize": 14,
+    "wordWrap": "on"
+  }
+}
+
+
+

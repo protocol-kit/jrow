@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ project.name }}
+  namespace: {{ kubernetes.namespace }}
+  labels:
+    app: {{ project.name }}
+    version: {{ project.version }}
+spec:
+  replicas: {{ kubernetes.replicas }}
+  selector:
+    matchLabels:
+      app: {{ project.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ project.name }}
+        version: {{ project.version }}
+    spec:
+      containers:
+      - name: {{ project.name }}
+        image: {{ full_image }}:{{ project.version }}
+        ports:
+        {% for port in docker.expose_ports -%}
+        - containerPort: {{ port }}
+          name: port-{{ port }}
+          protocol: TCP
+        {% endfor %}
+        env:
+        - name: RUST_LOG
+          value: "info"
+        - name: BIND_ADDRESS
+          value: "{{ bind_full }}"
+        - name: BATCH_MODE
+          valueFrom:
+            configMapKeyRef:
+              name: {{ project.name }}-config
+              key: batch_mode
+        - name: MAX_CONNECTIONS
+          valueFrom:
+            configMapKeyRef:
+              name: {{ project.name }}-config
+              key: max_connections
+        - name: CONNECTION_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: {{ project.name }}-config
+              key: connection_timeout
+        resources:
+          requests:
+            memory: "{{ kubernetes.resources.requests_memory }}"
+            cpu: "{{ kubernetes.resources.requests_cpu }}"
+          limits:
+            memory: "{{ kubernetes.resources.limits_memory }}"
+            cpu: "{{ kubernetes.resources.limits_cpu }}"
+        livenessProbe:
+          tcpSocket:
+            port: {{ server.port }}
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: {{ server.port }}
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ project.name }}
+  namespace: {{ kubernetes.namespace }}
+spec:
+  selector:
+    app: {{ project.name }}
+  ports:
+  {% for port in docker.expose_ports -%}
+  - protocol: TCP
+    port: {{ port }}
+    targetPort: {{ port }}
+    name: port-{{ port }}
+  {% endfor %}
+  type: {{ kubernetes.service_type }}
+
+
+

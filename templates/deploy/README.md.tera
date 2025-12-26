@@ -1,0 +1,68 @@
+# {{ project.name }} Deployment
+
+Deployment configurations for **{{ project.name }}** - {{ project.description }}
+
+Generated from JROW templates v{{ project.version }}
+
+## Quick Start
+
+### Docker
+
+```bash
+# Build image
+docker build -t {{ full_image }}:{{ project.version }} -f deploy/docker/Dockerfile .
+
+# Run container
+docker run -p {{ server.port }}:{{ server.port }} {{ full_image }}:{{ project.version }}
+
+# Or use docker-compose
+cd deploy/docker && docker-compose up
+```
+
+### Kubernetes
+
+```bash
+# Apply configurations
+kubectl apply -f deploy/k8s/configmap.yaml
+kubectl apply -f deploy/k8s/deployment.yaml
+
+# Check status
+kubectl get pods -n {{ kubernetes.namespace }}
+kubectl get svc -n {{ kubernetes.namespace }}
+```
+
+## Configuration
+
+### Server Settings
+
+- **Address**: {{ bind_full }}
+- **Batch Mode**: {{ server.batch_mode }}
+- **Max Connections**: {{ server.max_connections }}
+- **Timeout**: {{ server.connection_timeout }}s
+
+### Kubernetes Resources
+
+- **Replicas**: {{ kubernetes.replicas }}
+- **Memory**: {{ kubernetes.resources.requests_memory }} (request) / {{ kubernetes.resources.limits_memory }} (limit)
+- **CPU**: {{ kubernetes.resources.requests_cpu }} (request) / {{ kubernetes.resources.limits_cpu }} (limit)
+
+## Ports
+
+{% for port in docker.expose_ports -%}
+- {{ port }} - Service port
+{% endfor %}
+
+## Customization
+
+To regenerate with different settings:
+
+1. Edit `jrow-template.toml`
+2. Run: `jrow-template-gen`
+3. Review generated files in `deploy/`
+
+## Built with JROW
+
+This deployment was generated using [JROW](https://github.com/artbin/jrow) - JSON-RPC over WebSocket toolkit for Rust.
+
+
+

@@ -1,0 +1,548 @@
+asyncapi: 3.0.0
+info:
+  title: JROW - JSON-RPC over WebSocket API
+  version: 0.1.0
+  description: |
+    A comprehensive JSON-RPC 2.0 implementation over WebSocket transport with support for:
+    - Request/Response pattern
+    - Notifications (one-way messages)
+    - Batch requests
+    - Publish/Subscribe (topic-based)
+    - Bidirectional communication
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  contact:
+    name: API Support
+    url: https://github.com/artbin/jrow
+
+servers:
+  production:
+    host: api.example.com:443
+    protocol: wss
+    description: Production server (secure WebSocket)
+    security:
+      - $ref: '#/components/securitySchemes/bearer'
+  
+  development:
+    host: localhost:8080
+    protocol: ws
+    description: Local development server
+
+defaultContentType: application/json
+
+channels:
+  rpc:
+    address: /
+    messages:
+      jsonrpc.request:
+        $ref: '#/components/messages/JsonRpcRequest'
+      jsonrpc.response:
+        $ref: '#/components/messages/JsonRpcResponse'
+      jsonrpc.notification:
+        $ref: '#/components/messages/JsonRpcNotification'
+      jsonrpc.batch:
+        $ref: '#/components/messages/JsonRpcBatch'
+      
+  pubsub:
+    address: /
+    description: Publish/Subscribe channels for topic-based messaging
+    messages:
+      subscribe.request:
+        $ref: '#/components/messages/SubscribeRequest'
+      subscribe.response:
+        $ref: '#/components/messages/SubscribeResponse'
+      unsubscribe.request:
+        $ref: '#/components/messages/UnsubscribeRequest'
+      unsubscribe.response:
+        $ref: '#/components/messages/UnsubscribeResponse'
+      topic.notification:
+        $ref: '#/components/messages/TopicNotification'
+
+operations:
+  sendRequest:
+    action: send
+    channel:
+      $ref: '#/channels/rpc'
+    summary: Send a JSON-RPC request
+    description: Send a request to the server and expect a response
+    messages:
+      - $ref: '#/channels/rpc/messages/jsonrpc.request'
+    
+  receiveResponse:
+    action: receive
+    channel:
+      $ref: '#/channels/rpc'
+    summary: Receive a JSON-RPC response
+    description: Receive a response from the server for a previously sent request
+    messages:
+      - $ref: '#/channels/rpc/messages/jsonrpc.response'
+  
+  sendNotification:
+    action: send
+    channel:
+      $ref: '#/channels/rpc'
+    summary: Send a notification
+    description: Send a one-way message that does not expect a response
+    messages:
+      - $ref: '#/channels/rpc/messages/jsonrpc.notification'
+  
+  receiveNotification:
+    action: receive
+    channel:
+      $ref: '#/channels/rpc'
+    summary: Receive a notification
+    description: Receive a notification from the server
+    messages:
+      - $ref: '#/channels/rpc/messages/jsonrpc.notification'
+  
+  sendBatchRequest:
+    action: send
+    channel:
+      $ref: '#/channels/rpc'
+    summary: Send a batch of requests
+    description: Send multiple requests in a single message
+    messages:
+      - $ref: '#/channels/rpc/messages/jsonrpc.batch'
+  
+  receiveBatchResponse:
+    action: receive
+    channel:
+      $ref: '#/channels/rpc'
+    summary: Receive batch responses
+    description: Receive responses for a batch request
+    messages:
+      - $ref: '#/channels/rpc/messages/jsonrpc.batch'
+  
+  subscribeTopic:
+    action: send
+    channel:
+      $ref: '#/channels/pubsub'
+    summary: Subscribe to a topic
+    description: Subscribe to receive notifications for a specific topic
+    messages:
+      - $ref: '#/channels/pubsub/messages/subscribe.request'
+  
+  unsubscribeTopic:
+    action: send
+    channel:
+      $ref: '#/channels/pubsub'
+    summary: Unsubscribe from a topic
+    description: Stop receiving notifications for a topic
+    messages:
+      - $ref: '#/channels/pubsub/messages/unsubscribe.request'
+  
+  receiveTopicNotification:
+    action: receive
+    channel:
+      $ref: '#/channels/pubsub'
+    summary: Receive topic notification
+    description: Receive a notification from a subscribed topic
+    messages:
+      - $ref: '#/channels/pubsub/messages/topic.notification'
+
+components:
+  messages:
+    JsonRpcRequest:
+      name: JSON-RPC Request
+      title: JSON-RPC 2.0 Request
+      summary: A request message expecting a response
+      contentType: application/json
+      payload:
+        type: object
+        required:
+          - jsonrpc
+          - method
+          - id
+        properties:
+          jsonrpc:
+            type: string
+            const: "2.0"
+            description: JSON-RPC protocol version
+          method:
+            type: string
+            description: The method to be invoked
+            examples:
+              - add
+              - subtract
+              - multiply
+          params:
+            oneOf:
+              - type: object
+              - type: array
+            description: Parameters for the method (optional)
+          id:
+            oneOf:
+              - type: string
+              - type: number
+            description: Unique identifier for this request
+        examples:
+          - jsonrpc: "2.0"
+            method: "add"
+            params:
+              a: 5
+              b: 3
+            id: 1
+    
+    JsonRpcResponse:
+      name: JSON-RPC Response
+      title: JSON-RPC 2.0 Response
+      summary: A response to a request
+      contentType: application/json
+      payload:
+        type: object
+        required:
+          - jsonrpc
+          - id
+        properties:
+          jsonrpc:
+            type: string
+            const: "2.0"
+          result:
+            description: The result of the method invocation (success case)
+          error:
+            type: object
+            description: Error information (error case)
+            required:
+              - code
+              - message
+            properties:
+              code:
+                type: integer
+                description: Error code
+              message:
+                type: string
+                description: Error message
+              data:
+                description: Additional error data (optional)
+          id:
+            oneOf:
+              - type: string
+              - type: number
+              - type: "null"
+            description: Matches the request id
+        examples:
+          - jsonrpc: "2.0"
+            result: 8
+            id: 1
+          - jsonrpc: "2.0"
+            error:
+              code: -32601
+              message: "Method not found"
+            id: 2
+    
+    JsonRpcNotification:
+      name: JSON-RPC Notification
+      title: JSON-RPC 2.0 Notification
+      summary: A one-way message without response
+      contentType: application/json
+      payload:
+        type: object
+        required:
+          - jsonrpc
+          - method
+        properties:
+          jsonrpc:
+            type: string
+            const: "2.0"
+          method:
+            type: string
+            description: The method name
+          params:
+            oneOf:
+              - type: object
+              - type: array
+            description: Method parameters
+        examples:
+          - jsonrpc: "2.0"
+            method: "log"
+            params:
+              level: "info"
+              message: "Server started"
+    
+    JsonRpcBatch:
+      name: JSON-RPC Batch
+      title: JSON-RPC 2.0 Batch Request/Response
+      summary: Multiple requests or responses in a single message
+      contentType: application/json
+      payload:
+        type: array
+        minItems: 1
+        items:
+          oneOf:
+            - $ref: '#/components/schemas/JsonRpcRequestPayload'
+            - $ref: '#/components/schemas/JsonRpcResponsePayload'
+            - $ref: '#/components/schemas/JsonRpcNotificationPayload'
+        examples:
+          - - jsonrpc: "2.0"
+              method: "add"
+              params:
+                a: 1
+                b: 2
+              id: 1
+            - jsonrpc: "2.0"
+              method: "multiply"
+              params:
+                a: 3
+                b: 4
+              id: 2
+            - jsonrpc: "2.0"
+              method: "log"
+              params:
+                message: "Batch sent"
+    
+    SubscribeRequest:
+      name: Subscribe Request
+      title: Topic Subscription Request
+      summary: Subscribe to a topic for notifications
+      contentType: application/json
+      payload:
+        type: object
+        required:
+          - jsonrpc
+          - method
+          - params
+          - id
+        properties:
+          jsonrpc:
+            type: string
+            const: "2.0"
+          method:
+            type: string
+            const: "rpc.subscribe"
+          params:
+            type: object
+            required:
+              - topic
+            properties:
+              topic:
+                type: string
+                description: Topic name to subscribe to
+          id:
+            oneOf:
+              - type: string
+              - type: number
+        examples:
+          - jsonrpc: "2.0"
+            method: "rpc.subscribe"
+            params:
+              topic: "stock.prices"
+            id: 1
+    
+    SubscribeResponse:
+      name: Subscribe Response
+      title: Subscription Confirmation
+      summary: Confirmation of successful subscription
+      contentType: application/json
+      payload:
+        type: object
+        required:
+          - jsonrpc
+          - result
+          - id
+        properties:
+          jsonrpc:
+            type: string
+            const: "2.0"
+          result:
+            type: object
+            properties:
+              subscribed:
+                type: boolean
+                const: true
+              topic:
+                type: string
+          id:
+            oneOf:
+              - type: string
+              - type: number
+        examples:
+          - jsonrpc: "2.0"
+            result:
+              subscribed: true
+              topic: "stock.prices"
+            id: 1
+    
+    UnsubscribeRequest:
+      name: Unsubscribe Request
+      title: Topic Unsubscription Request
+      summary: Unsubscribe from a topic
+      contentType: application/json
+      payload:
+        type: object
+        required:
+          - jsonrpc
+          - method
+          - params
+          - id
+        properties:
+          jsonrpc:
+            type: string
+            const: "2.0"
+          method:
+            type: string
+            const: "rpc.unsubscribe"
+          params:
+            type: object
+            required:
+              - topic
+            properties:
+              topic:
+                type: string
+          id:
+            oneOf:
+              - type: string
+              - type: number
+        examples:
+          - jsonrpc: "2.0"
+            method: "rpc.unsubscribe"
+            params:
+              topic: "stock.prices"
+            id: 2
+    
+    UnsubscribeResponse:
+      name: Unsubscribe Response
+      title: Unsubscription Confirmation
+      summary: Confirmation of successful unsubscription
+      contentType: application/json
+      payload:
+        type: object
+        required:
+          - jsonrpc
+          - result
+          - id
+        properties:
+          jsonrpc:
+            type: string
+            const: "2.0"
+          result:
+            type: object
+            properties:
+              unsubscribed:
+                type: boolean
+                const: true
+              topic:
+                type: string
+          id:
+            oneOf:
+              - type: string
+              - type: number
+        examples:
+          - jsonrpc: "2.0"
+            result:
+              unsubscribed: true
+              topic: "stock.prices"
+            id: 2
+    
+    TopicNotification:
+      name: Topic Notification
+      title: Published Topic Message
+      summary: Notification from a subscribed topic
+      contentType: application/json
+      payload:
+        type: object
+        required:
+          - jsonrpc
+          - method
+          - params
+        properties:
+          jsonrpc:
+            type: string
+            const: "2.0"
+          method:
+            type: string
+            description: Topic name
+          params:
+            description: Topic data
+        examples:
+          - jsonrpc: "2.0"
+            method: "stock.prices"
+            params:
+              symbol: "AAPL"
+              price: 150.0
+              timestamp: 1703347200
+  
+  schemas:
+    JsonRpcRequestPayload:
+      type: object
+      required:
+        - jsonrpc
+        - method
+        - id
+      properties:
+        jsonrpc:
+          type: string
+          const: "2.0"
+        method:
+          type: string
+        params:
+          oneOf:
+            - type: object
+            - type: array
+        id:
+          oneOf:
+            - type: string
+            - type: number
+    
+    JsonRpcResponsePayload:
+      type: object
+      required:
+        - jsonrpc
+        - id
+      properties:
+        jsonrpc:
+          type: string
+          const: "2.0"
+        result: {}
+        error:
+          type: object
+          properties:
+            code:
+              type: integer
+            message:
+              type: string
+            data: {}
+        id:
+          oneOf:
+            - type: string
+            - type: number
+            - type: "null"
+    
+    JsonRpcNotificationPayload:
+      type: object
+      required:
+        - jsonrpc
+        - method
+      properties:
+        jsonrpc:
+          type: string
+          const: "2.0"
+        method:
+          type: string
+        params:
+          oneOf:
+            - type: object
+            - type: array
+  
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Bearer token authentication
+    
+    apiKey:
+      type: apiKey
+      in: header
+      description: API key authentication
+
+tags:
+  - name: JSON-RPC
+    description: Core JSON-RPC 2.0 protocol operations
+  - name: Pub/Sub
+    description: Publish/Subscribe pattern operations
+  - name: Batch
+    description: Batch request operations
+
+
+

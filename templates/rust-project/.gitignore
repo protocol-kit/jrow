@@ -1,0 +1,36 @@
+# Rust
+/target/
+**/*.rs.bk
+*.pdb
+
+# Cargo
+Cargo.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Configuration (if using config files)
+config/local.toml
+config/*.local.toml
+
+# Logs
+*.log
+
+# Build artifacts
+dist/
+build/
+
+
+

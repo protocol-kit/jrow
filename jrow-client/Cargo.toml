@@ -1,0 +1,22 @@
+[package]
+name = "jrow-client"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "JSON-RPC 2.0 client implementation over WebSocket"
+
+[dependencies]
+jrow-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-tungstenite.workspace = true
+futures.workspace = true
+rand = "0.8"
+opentelemetry.workspace = true
+opentelemetry_sdk.workspace = true
+tracing.workspace = true
+

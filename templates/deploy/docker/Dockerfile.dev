@@ -1,0 +1,34 @@
+# Development Dockerfile with hot reload
+FROM rust:1.75
+
+WORKDIR /usr/src/jrow
+
+# Install cargo-watch for hot reloading
+RUN cargo install cargo-watch
+
+# Copy dependency files first for caching
+COPY Cargo.toml Cargo.lock ./
+COPY jrow-core/Cargo.toml ./jrow-core/
+COPY jrow-server/Cargo.toml ./jrow-server/
+COPY jrow-client/Cargo.toml ./jrow-client/
+COPY jrow-macros/Cargo.toml ./jrow-macros/
+
+# Create dummy source files to build dependencies
+RUN mkdir -p jrow-core/src jrow-server/src jrow-client/src jrow-macros/src && \
+    echo "fn main() {}" > jrow-core/src/lib.rs && \
+    echo "fn main() {}" > jrow-server/src/lib.rs && \
+    echo "fn main() {}" > jrow-client/src/lib.rs && \
+    echo "fn main() {}" > jrow-macros/src/lib.rs
+
+# Build dependencies
+RUN cargo build --release
+
+# Copy the actual source code
+COPY . .
+
+# Expose ports
+EXPOSE 8080 9000 9001 9002 9003 9004
+
+# Use cargo-watch for hot reloading
+CMD ["cargo", "watch", "-x", "run --example simple_server"]
+

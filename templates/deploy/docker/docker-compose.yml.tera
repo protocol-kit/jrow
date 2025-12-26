@@ -1,0 +1,30 @@
+version: '3.8'
+
+# Generated from JROW templates for {{ project.name }}
+
+services:
+  {{ project.name }}:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+    image: {{ full_image }}:{{ project.version }}
+    ports:
+      {% for port in docker.expose_ports -%}
+      - "{{ port }}:{{ port }}"
+      {% endfor %}
+    environment:
+      - RUST_LOG=info
+      - BIND_ADDRESS={{ bind_full }}
+      - BATCH_MODE={{ server.batch_mode }}
+      - MAX_CONNECTIONS={{ server.max_connections }}
+      - CONNECTION_TIMEOUT={{ server.connection_timeout }}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "{{ server.port }}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+
+

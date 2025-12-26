@@ -1,0 +1,26 @@
+# Rust
+/target/
+tools/template-gen/target/
+**/*.rs.bk
+*.pdb
+Cargo.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+.history/
+
+# Generated deployment files (but keep templates/deploy/)
+/deploy/
+
+# Database files (sled)
+data/
+*.db/
