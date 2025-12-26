@@ -62,7 +62,7 @@ To regenerate with different settings:
 
 ## Built with JROW
 
-This deployment was generated using [JROW](https://github.com/artbin/jrow) - JSON-RPC over WebSocket toolkit for Rust.
+This deployment was generated using [JROW](https://github.com/protocol-kit/jsow) - JSON-RPC over WebSocket toolkit for Rust.
 
 
 

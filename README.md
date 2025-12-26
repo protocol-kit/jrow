@@ -5,7 +5,7 @@
 [![License: MIT-0](https://img.shields.io/badge/License-MIT--0-blue.svg)](https://opensource.org/licenses/MIT-0)
 [![License: CC0-1.0](https://img.shields.io/badge/License-CC0--1.0-blue.svg)](https://creativecommons.org/publicdomain/zero/1.0/)
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/artbin/jrow/ci.yml?branch=main)](https://github.com/artbin/jrow/actions)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/protocol-kit/jsow/ci.yml?branch=main)](https://github.com/protocol-kit/jsow/actions)
 
 IMPORTANT: Project in research and design phase. Drafts only.
 
