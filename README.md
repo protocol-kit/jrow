@@ -335,11 +335,6 @@ client.subscribe("logs.*.error", |msg| async move {
 
 For pattern subscriptions, the notification data includes the actual topic that matched.
 
-**Pattern syntax:**
-- `*` - Matches any sequence of characters (except `/`)
-- `?` - Matches any single character
-- Exact topics (no wildcards) use fast exact matching
-
 See [`examples/subscription_filters.rs`](examples/subscription_filters.rs) for a complete demonstration.
 
 **Batch subscribe/unsubscribe:**
