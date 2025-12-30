@@ -6,17 +6,30 @@ info:
     {{ project.description }}
     
     Built with JROW - JSON-RPC 2.0 over WebSocket with support for:
-    - Request/Response pattern
+    - Request/Response pattern with full type safety
     - Notifications (one-way messages)
-    - Batch requests
-    - Publish/Subscribe (topic-based)
+    - Batch requests ({{ server.batch_mode }} execution)
+    - Publish/Subscribe (topic-based messaging)
     - Bidirectional communication
+    
+    ## Connection Limits
+    - Max connections: {{ server.max_connections }}
+    - Connection timeout: {{ server.connection_timeout }}s
+    - Max request size: {{ server.max_request_size }} bytes
+    {% if server.max_batch_size -%}
+    - Max batch size: {{ server.max_batch_size }} requests
+    {% endif -%}
+    {% if asyncapi.rate_limit_enabled -%}
+    
+    ## Rate Limiting
+    - Limit: {{ asyncapi.rate_limit_requests }} requests per {{ asyncapi.rate_limit_window }}
+    {% endif -%}
   license:
     name: {{ project.license }}
     {% if project.license_url -%}
     url: {{ project.license_url }}
     {% endif -%}
-  {% if project.contact_name or project.contact_url -%}
+  {% if project.contact_name or project.contact_url or project.contact_email -%}
   contact:
     {% if project.contact_name -%}
     name: {{ project.contact_name }}
@@ -24,13 +37,16 @@ info:
     {% if project.contact_url -%}
     url: {{ project.contact_url }}
     {% endif -%}
+    {% if project.contact_email -%}
+    email: {{ project.contact_email }}
+    {% endif -%}
   {% endif -%}
 
 servers:
   production:
     host: {{ asyncapi.production_host }}:{{ asyncapi.production_port }}
     protocol: {{ asyncapi.production_protocol }}
-    description: Production server
+    description: Production server{% if asyncapi.production_protocol == "wss" %} (secure WebSocket){% endif %}
     {% if asyncapi.security_enabled -%}
     security:
       - $ref: '#/components/securitySchemes/bearer'
@@ -46,6 +62,9 @@ defaultContentType: application/json
 channels:
   rpc:
     address: /
+    description: |
+      JSON-RPC 2.0 channel for request/response and notification patterns.
+      All methods defined in this API are invoked through this channel.
     messages:
       jsonrpc.request:
         $ref: '#/components/messages/JsonRpcRequest'
@@ -55,10 +74,18 @@ channels:
         $ref: '#/components/messages/JsonRpcNotification'
       jsonrpc.batch:
         $ref: '#/components/messages/JsonRpcBatch'
+      {% for method in asyncapi.methods -%}
+      {{ method.name }}.request:
+        $ref: '#/components/messages/{{ method.name | capitalize }}Request'
+      {{ method.name }}.response:
+        $ref: '#/components/messages/{{ method.name | capitalize }}Response'
+      {% endfor -%}
       
   pubsub:
     address: /
-    description: Publish/Subscribe channels for topic-based messaging
+    description: |
+      Publish/Subscribe channels for topic-based messaging.
+      Subscribe to topics to receive real-time notifications.
     messages:
       subscribe.request:
         $ref: '#/components/messages/SubscribeRequest'
@@ -68,16 +95,21 @@ channels:
         $ref: '#/components/messages/UnsubscribeRequest'
       unsubscribe.response:
         $ref: '#/components/messages/UnsubscribeResponse'
-      topic.notification:
-        $ref: '#/components/messages/TopicNotification'
+      {% for topic in asyncapi.topics -%}
+      {{ topic.name }}:
+        $ref: '#/components/messages/{{ topic.name | replace(from=".", to="_") | capitalize }}Notification'
+      {% endfor -%}
 
 operations:
+  # RPC Operations
   sendRequest:
     action: send
     channel:
       $ref: '#/channels/rpc'
     summary: Send a JSON-RPC request
-    description: Send a request to the server and expect a response
+    description: |
+      Send a request to the server and expect a response.
+      The request must include a unique `id` field for correlation.
     messages:
       - $ref: '#/channels/rpc/messages/jsonrpc.request'
     
@@ -86,7 +118,9 @@ operations:
     channel:
       $ref: '#/channels/rpc'
     summary: Receive a JSON-RPC response
-    description: Receive a response from the server for a previously sent request
+    description: |
+      Receive a response from the server for a previously sent request.
+      The response `id` will match the request `id`.
     messages:
       - $ref: '#/channels/rpc/messages/jsonrpc.response'
   
@@ -95,7 +129,9 @@ operations:
     channel:
       $ref: '#/channels/rpc'
     summary: Send a notification
-    description: Send a one-way message that does not expect a response
+    description: |
+      Send a one-way message that does not expect a response.
+      Notifications do not include an `id` field.
     messages:
       - $ref: '#/channels/rpc/messages/jsonrpc.notification'
   
@@ -113,7 +149,12 @@ operations:
     channel:
       $ref: '#/channels/rpc'
     summary: Send a batch of requests
-    description: Send multiple requests in a single message
+    description: |
+      Send multiple requests in a single message for better performance.
+      Batch execution mode: {{ server.batch_mode }}
+      {% if server.max_batch_size -%}
+      Maximum batch size: {{ server.max_batch_size }} requests
+      {% endif -%}
     messages:
       - $ref: '#/channels/rpc/messages/jsonrpc.batch'
   
@@ -122,18 +163,71 @@ operations:
     channel:
       $ref: '#/channels/rpc'
     summary: Receive batch responses
-    description: Receive responses for a batch request
+    description: |
+      Receive responses for a batch request.
+      Responses may be returned in any order.
     messages:
       - $ref: '#/channels/rpc/messages/jsonrpc.batch'
   
+  # Method-specific operations
+  {% for method in asyncapi.methods -%}
+  {{ method.name }}:
+    action: send
+    channel:
+      $ref: '#/channels/rpc'
+    summary: {{ method.description | default(value=method.name) }}
+    {% if method.tags -%}
+    tags:
+      {% for tag in method.tags -%}
+      - name: {{ tag }}
+      {% endfor -%}
+    {% endif -%}
+    {% if method.deprecated -%}
+    deprecated: true
+    {% endif -%}
+    description: |
+      {{ method.description | default(value="") }}
+      
+      **Method:** `{{ method.name }}`
+      {% if method.error_codes -%}
+      
+      **Possible errors:**
+      {% for error_code in method.error_codes -%}
+      {% for error in asyncapi.error_codes -%}
+      {% if error.code == error_code -%}
+      - `{{ error.code }}` - {{ error.name }}: {{ error.message }}
+      {% endif -%}
+      {% endfor -%}
+      {% endfor -%}
+      {% endif -%}
+    messages:
+      - $ref: '#/channels/rpc/messages/{{ method.name }}.request'
+    reply:
+      channel:
+        $ref: '#/channels/rpc'
+      messages:
+        - $ref: '#/channels/rpc/messages/{{ method.name }}.response'
+  
+  {% endfor -%}
+  
+  # Pub/Sub Operations
   subscribeTopic:
     action: send
     channel:
       $ref: '#/channels/pubsub'
     summary: Subscribe to a topic
-    description: Subscribe to receive notifications for a specific topic
+    description: |
+      Subscribe to receive notifications for a specific topic.
+      Supports exact topic names and wildcard patterns:
+      - `*` matches exactly ONE token (e.g., `events.*` matches `events.user`)
+      - `>` matches ONE OR MORE tokens (e.g., `events.>` matches `events.user.login`)
     messages:
       - $ref: '#/channels/pubsub/messages/subscribe.request'
+    reply:
+      channel:
+        $ref: '#/channels/pubsub'
+      messages:
+        - $ref: '#/channels/pubsub/messages/subscribe.response'
   
   unsubscribeTopic:
     action: send
@@ -143,22 +237,136 @@ operations:
     description: Stop receiving notifications for a topic
     messages:
       - $ref: '#/channels/pubsub/messages/unsubscribe.request'
+    reply:
+      channel:
+        $ref: '#/channels/pubsub'
+      messages:
+        - $ref: '#/channels/pubsub/messages/unsubscribe.response'
   
-  receiveTopicNotification:
+  {% for topic in asyncapi.topics -%}
+  receive{{ topic.name | replace(from=".", to="_") | capitalize }}:
     action: receive
     channel:
       $ref: '#/channels/pubsub'
-    summary: Receive topic notification
-    description: Receive a notification from a subscribed topic
+    summary: Receive {{ topic.name }} notifications
+    description: |
+      {{ topic.description | default(value="") }}
+      {% if topic.publish_rate -%}
+      
+      **Publish rate:** {{ topic.publish_rate }}
+      {% endif -%}
     messages:
-      - $ref: '#/channels/pubsub/messages/topic.notification'
+      - $ref: '#/channels/pubsub/messages/{{ topic.name }}'
+  
+  {% endfor -%}
 
 components:
   messages:
+    # Generic JSON-RPC Messages
     JsonRpcRequest:
       name: JSON-RPC Request
-      title: JSON-RPC 2.0 Request
-      summary: A request message expecting a response
+      title: JSON-RPC 2.0 Request (Generic)
+      summary: A generic request message expecting a response
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/JsonRpcRequestPayload'
+      examples:
+        {% for method in asyncapi.methods | slice(end=2) -%}
+        - name: {{ method.name }} request
+          summary: Example {{ method.name }} request
+          payload:
+            jsonrpc: "2.0"
+            method: "{{ method.name }}"
+            {% if method.example_params -%}
+            params: {{ method.example_params }}
+            {% endif -%}
+            id: {{ loop.index }}
+        {% endfor -%}
+    
+    JsonRpcResponse:
+      name: JSON-RPC Response
+      title: JSON-RPC 2.0 Response (Generic)
+      summary: A generic response to a request
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/JsonRpcResponsePayload'
+      examples:
+        - name: Success response
+          summary: Successful method invocation
+          payload:
+            jsonrpc: "2.0"
+            result: {{ asyncapi.methods.0.example_result | default(value="null") }}
+            id: 1
+        - name: Error response
+          summary: Method not found error
+          payload:
+            jsonrpc: "2.0"
+            error:
+              code: -32601
+              message: "Method not found"
+            id: 2
+    
+    JsonRpcNotification:
+      name: JSON-RPC Notification
+      title: JSON-RPC 2.0 Notification
+      summary: A one-way message without response
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/JsonRpcNotificationPayload'
+      examples:
+        - name: Log notification
+          payload:
+            jsonrpc: "2.0"
+            method: "log"
+            params:
+              level: "info"
+              message: "Server started"
+    
+    JsonRpcBatch:
+      name: JSON-RPC Batch
+      title: JSON-RPC 2.0 Batch Request/Response
+      summary: Multiple requests or responses in a single message
+      contentType: application/json
+      payload:
+        type: array
+        minItems: 1
+        {% if server.max_batch_size -%}
+        maxItems: {{ server.max_batch_size }}
+        {% endif -%}
+        items:
+          oneOf:
+            - $ref: '#/components/schemas/JsonRpcRequestPayload'
+            - $ref: '#/components/schemas/JsonRpcResponsePayload'
+            - $ref: '#/components/schemas/JsonRpcNotificationPayload'
+      examples:
+        - name: Mixed batch
+          summary: Batch with requests and notification
+          payload:
+            {% for method in asyncapi.methods | slice(end=2) -%}
+            - jsonrpc: "2.0"
+              method: "{{ method.name }}"
+              {% if method.example_params -%}
+              params: {{ method.example_params }}
+              {% endif -%}
+              id: {{ loop.index }}
+            {% endfor -%}
+            - jsonrpc: "2.0"
+              method: "log"
+              params:
+                message: "Batch sent"
+    
+    # Method-specific Messages
+    {% for method in asyncapi.methods -%}
+    {{ method.name | capitalize }}Request:
+      name: {{ method.name }} Request
+      title: {{ method.description | default(value=method.name) }}
+      summary: Request for {{ method.name }} method
+      {% if method.tags -%}
+      tags:
+        {% for tag in method.tags -%}
+        - name: {{ tag }}
+        {% endfor -%}
+      {% endif -%}
       contentType: application/json
       payload:
         type: object
@@ -173,35 +381,49 @@ components:
             description: JSON-RPC protocol version
           method:
             type: string
-            description: The method to be invoked
-            examples:
-              {% for method in asyncapi.methods -%}
-              - {{ method.name }}
-              {% endfor -%}
+            const: "{{ method.name }}"
+            description: Method name
           params:
+            {% if method.params_type -%}
+            type: {{ method.params_type }}
+            description: Method parameters
+            {% if method.params_required -%}
+            required:
+              {% for param in method.params_required -%}
+              - {{ param }}
+              {% endfor -%}
+            {% endif -%}
+            {% if method.params_properties -%}
+            properties: {{ method.params_properties }}
+            {% endif -%}
+            {% else -%}
             oneOf:
               - type: object
               - type: array
-            description: Parameters for the method (optional)
+            description: Method parameters (optional)
+            {% endif -%}
           id:
             oneOf:
               - type: string
               - type: number
-            description: Unique identifier for this request
-        examples:
-          {% for method in asyncapi.methods -%}
-          - jsonrpc: "2.0"
+            description: Unique request identifier for correlation
+      examples:
+        - name: {{ method.name }} example
+          {% if method.example_params -%}
+          summary: {{ method.description | default(value="") }}
+          {% endif -%}
+          payload:
+            jsonrpc: "2.0"
             method: "{{ method.name }}"
             {% if method.example_params -%}
             params: {{ method.example_params }}
             {% endif -%}
-            id: {{ loop.index }}
-          {% endfor -%}
+            id: 1
     
-    JsonRpcResponse:
-      name: JSON-RPC Response
-      title: JSON-RPC 2.0 Response
-      summary: A response to a request
+    {{ method.name | capitalize }}Response:
+      name: {{ method.name }} Response
+      title: Response for {{ method.name }}
+      summary: Successful response for {{ method.name }} method
       contentType: application/json
       payload:
         type: object
@@ -213,94 +435,59 @@ components:
             type: string
             const: "2.0"
           result:
-            description: The result of the method invocation (success case)
+            {% if method.result_type -%}
+            {% if method.result_schema -%}
+            {{ method.result_schema }}
+            {% else -%}
+            type: {{ method.result_type }}
+            {% endif -%}
+            {% if method.result_description -%}
+            description: {{ method.result_description }}
+            {% endif -%}
+            {% if method.result_examples -%}
+            examples:
+              {% for example in method.result_examples -%}
+              - {{ example }}
+              {% endfor -%}
+            {% endif -%}
+            {% else -%}
+            description: Method result
+            {% endif -%}
           error:
-            type: object
-            description: Error information (error case)
-            required:
-              - code
-              - message
-            properties:
-              code:
-                type: integer
-                description: Error code
-              message:
-                type: string
-                description: Error message
-              data:
-                description: Additional error data (optional)
+            $ref: '#/components/schemas/JsonRpcError'
           id:
             oneOf:
               - type: string
               - type: number
               - type: "null"
             description: Matches the request id
-        examples:
-          - jsonrpc: "2.0"
-            result: {{ asyncapi.methods.0.example_result | default(value="null") }}
+      examples:
+        - name: Success
+          summary: Successful {{ method.name }} response
+          payload:
+            jsonrpc: "2.0"
+            result: {{ method.example_result | default(value="null") }}
             id: 1
-          - jsonrpc: "2.0"
+        {% if method.error_codes -%}
+        {% for error_code in method.error_codes | slice(end=2) -%}
+        {% for error in asyncapi.error_codes -%}
+        {% if error.code == error_code -%}
+        - name: Error {{ error.code }}
+          summary: {{ error.name }}
+          payload:
+            jsonrpc: "2.0"
             error:
-              code: -32601
-              message: "Method not found"
-            id: 2
+              code: {{ error.code }}
+              message: "{{ error.message }}"
+            id: 1
+        {% endif -%}
+        {% endfor -%}
+        {% endfor -%}
+        {% endif -%}
     
-    JsonRpcNotification:
-      name: JSON-RPC Notification
-      title: JSON-RPC 2.0 Notification
-      summary: A one-way message without response
-      contentType: application/json
-      payload:
-        type: object
-        required:
-          - jsonrpc
-          - method
-        properties:
-          jsonrpc:
-            type: string
-            const: "2.0"
-          method:
-            type: string
-            description: The method name
-          params:
-            oneOf:
-              - type: object
-              - type: array
-            description: Method parameters
-        examples:
-          - jsonrpc: "2.0"
-            method: "log"
-            params:
-              level: "info"
-              message: "Server started"
+    {% endfor -%}
     
-    JsonRpcBatch:
-      name: JSON-RPC Batch
-      title: JSON-RPC 2.0 Batch Request/Response
-      summary: Multiple requests or responses in a single message
-      contentType: application/json
-      payload:
-        type: array
-        minItems: 1
-        items:
-          oneOf:
-            - $ref: '#/components/schemas/JsonRpcRequestPayload'
-            - $ref: '#/components/schemas/JsonRpcResponsePayload'
-            - $ref: '#/components/schemas/JsonRpcNotificationPayload'
-        examples:
-          - {% for method in asyncapi.methods | slice(end=2) -%}
-            - jsonrpc: "2.0"
-              method: "{{ method.name }}"
-              {% if method.example_params -%}
-              params: {{ method.example_params }}
-              {% endif -%}
-              id: {{ loop.index }}
-            {% endfor -%}
-            - jsonrpc: "2.0"
-              method: "log"
-              params:
-                message: "Batch sent"
-    
+    # Pub/Sub Messages
     SubscribeRequest:
       name: Subscribe Request
       title: Topic Subscription Request
@@ -327,7 +514,9 @@ components:
             properties:
               topic:
                 type: string
-                description: Topic name to subscribe to
+                description: |
+                  Topic name or pattern to subscribe to.
+                  Supports wildcards: `*` (single token), `>` (multiple tokens)
                 examples:
                   {% for topic in asyncapi.topics -%}
                   - {{ topic.name }}
@@ -336,14 +525,17 @@ components:
             oneOf:
               - type: string
               - type: number
-        examples:
-          {% for topic in asyncapi.topics -%}
-          - jsonrpc: "2.0"
+      examples:
+        {% for topic in asyncapi.topics -%}
+        - name: Subscribe to {{ topic.name }}
+          summary: {{ topic.description | default(value="") }}
+          payload:
+            jsonrpc: "2.0"
             method: "rpc.subscribe"
             params:
               topic: "{{ topic.name }}"
             id: {{ loop.index }}
-          {% endfor -%}
+        {% endfor -%}
     
     SubscribeResponse:
       name: Subscribe Response
@@ -362,18 +554,25 @@ components:
             const: "2.0"
           result:
             type: object
+            required:
+              - subscribed
+              - topic
             properties:
               subscribed:
                 type: boolean
                 const: true
+                description: Subscription status
               topic:
                 type: string
+                description: The topic that was subscribed to
           id:
             oneOf:
               - type: string
               - type: number
-        examples:
-          - jsonrpc: "2.0"
+      examples:
+        - name: Subscription confirmed
+          payload:
+            jsonrpc: "2.0"
             result:
               subscribed: true
               topic: "{{ asyncapi.topics.0.name | default(value='example.topic') }}"
@@ -405,12 +604,15 @@ components:
             properties:
               topic:
                 type: string
+                description: Topic name or pattern to unsubscribe from
           id:
             oneOf:
               - type: string
               - type: number
-        examples:
-          - jsonrpc: "2.0"
+      examples:
+        - name: Unsubscribe from topic
+          payload:
+            jsonrpc: "2.0"
             method: "rpc.unsubscribe"
             params:
               topic: "{{ asyncapi.topics.0.name | default(value='example.topic') }}"
@@ -433,27 +635,42 @@ components:
             const: "2.0"
           result:
             type: object
+            required:
+              - unsubscribed
+              - topic
             properties:
               unsubscribed:
                 type: boolean
                 const: true
+                description: Unsubscription status
               topic:
                 type: string
+                description: The topic that was unsubscribed from
           id:
             oneOf:
               - type: string
               - type: number
-        examples:
-          - jsonrpc: "2.0"
+      examples:
+        - name: Unsubscription confirmed
+          payload:
+            jsonrpc: "2.0"
             result:
               unsubscribed: true
               topic: "{{ asyncapi.topics.0.name | default(value='example.topic') }}"
             id: 2
     
-    TopicNotification:
-      name: Topic Notification
-      title: Published Topic Message
-      summary: Notification from a subscribed topic
+    # Topic-specific Notifications
+    {% for topic in asyncapi.topics -%}
+    {{ topic.name | replace(from=".", to="_") | capitalize }}Notification:
+      name: {{ topic.name }} Notification
+      title: {{ topic.description | default(value=topic.name) }}
+      summary: Notification from {{ topic.name }} topic
+      {% if topic.tags -%}
+      tags:
+        {% for tag in topic.tags -%}
+        - name: {{ tag }}
+        {% endfor -%}
+      {% endif -%}
       contentType: application/json
       payload:
         type: object
@@ -467,23 +684,40 @@ components:
             const: "2.0"
           method:
             type: string
+            const: "{{ topic.name }}"
             description: Topic name
-            examples:
-              {% for topic in asyncapi.topics -%}
-              - {{ topic.name }}
-              {% endfor -%}
           params:
+            {% if topic.message_type -%}
+            type: {{ topic.message_type }}
+            description: {{ topic.description | default(value="Topic message data") }}
+            {% if topic.message_required -%}
+            required:
+              {% for field in topic.message_required -%}
+              - {{ field }}
+              {% endfor -%}
+            {% endif -%}
+            {% if topic.message_properties -%}
+            properties: {{ topic.message_properties }}
+            {% endif -%}
+            {% else -%}
             description: Topic data
-        examples:
-          {% for topic in asyncapi.topics -%}
-          - jsonrpc: "2.0"
+            {% endif -%}
+      examples:
+        - name: {{ topic.name }} message
+          {% if topic.description -%}
+          summary: {{ topic.description }}
+          {% endif -%}
+          payload:
+            jsonrpc: "2.0"
             method: "{{ topic.name }}"
             {% if topic.example_params -%}
             params: {{ topic.example_params }}
             {% endif -%}
-          {% endfor -%}
+    
+    {% endfor -%}
   
   schemas:
+    # Core JSON-RPC Schemas
     JsonRpcRequestPayload:
       type: object
       required:
@@ -494,16 +728,27 @@ components:
         jsonrpc:
           type: string
           const: "2.0"
+          description: JSON-RPC protocol version
         method:
           type: string
+          description: The method to be invoked
+          minLength: 1
+          {% if asyncapi.methods -%}
+          enum:
+            {% for method in asyncapi.methods -%}
+            - {{ method.name }}
+            {% endfor -%}
+          {% endif -%}
         params:
           oneOf:
             - type: object
             - type: array
+          description: Parameters for the method (optional)
         id:
           oneOf:
             - type: string
             - type: number
+          description: Unique identifier for correlation
     
     JsonRpcResponsePayload:
       type: object
@@ -514,20 +759,17 @@ components:
         jsonrpc:
           type: string
           const: "2.0"
-        result: {}
+          description: JSON-RPC protocol version
+        result:
+          description: Result of the method invocation (present on success)
         error:
-          type: object
-          properties:
-            code:
-              type: integer
-            message:
-              type: string
-            data: {}
+          $ref: '#/components/schemas/JsonRpcError'
         id:
           oneOf:
             - type: string
             - type: number
             - type: "null"
+          description: Matches the request id (null if id could not be determined)
     
     JsonRpcNotificationPayload:
       type: object
@@ -540,10 +782,40 @@ components:
           const: "2.0"
         method:
           type: string
+          description: The method name
+          minLength: 1
         params:
           oneOf:
             - type: object
             - type: array
+          description: Method parameters (optional)
+    
+    JsonRpcError:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          description: Error code indicating the error type
+          examples:
+            {% for error in asyncapi.error_codes -%}
+            - {{ error.code }}
+            {% endfor -%}
+        message:
+          type: string
+          description: Short description of the error
+          minLength: 1
+        data:
+          description: Additional information about the error (optional)
+      description: |
+        JSON-RPC error object with standard and application-specific error codes.
+        
+        **Standard JSON-RPC error codes:**
+        {% for error in asyncapi.error_codes -%}
+        - `{{ error.code }}` ({{ error.name }}): {{ error.message }}
+        {% endfor -%}
   
   securitySchemes:
     {% if asyncapi.security_enabled -%}
@@ -551,12 +823,14 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: Bearer token authentication
+      description: |
+        Bearer token authentication using JWT.
+        Include the token in the WebSocket connection upgrade request.
     
     apiKey:
       type: apiKey
       in: header
-      description: API key authentication
+      description: API key authentication for service-to-service communication
     {% endif -%}
 
 tags:
@@ -565,7 +839,18 @@ tags:
   - name: Pub/Sub
     description: Publish/Subscribe pattern operations
   - name: Batch
-    description: Batch request operations
-
-
-
+    description: Batch request operations for improved performance
+  {% for method in asyncapi.methods -%}
+  {% if method.tags -%}
+  {% for tag in method.tags -%}
+  - name: {{ tag }}
+  {% endfor -%}
+  {% endif -%}
+  {% endfor -%}
+  {% for topic in asyncapi.topics -%}
+  {% if topic.tags -%}
+  {% for tag in topic.tags -%}
+  - name: {{ tag }}
+  {% endfor -%}
+  {% endif -%}
+  {% endfor -%}

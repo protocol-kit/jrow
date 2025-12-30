@@ -1,15 +1,16 @@
-# JROW Template Configuration
+# JROW Template Configuration - Schema-First Edition
 # Copy this file to your project root and customize for your project
 
 [project]
 name = "my-jrow-app"
-description = "My JROW-based application"
+description = "My JROW-based application with full type safety"
 version = "0.1.0"
 rust_version = "1.75"
 license = "MIT"
 license_url = "https://opensource.org/licenses/MIT"
 contact_name = "API Support"
 contact_url = "https://github.com/myuser/my-jrow-app"
+contact_email = "support@example.com"
 
 [server]
 bind_address = "0.0.0.0"
@@ -17,6 +18,8 @@ port = 8080
 batch_mode = "Parallel"  # or "Sequential"
 max_connections = 1000
 connection_timeout = 300
+max_request_size = 1048576  # 1MB in bytes
+max_batch_size = 100
 
 [docker]
 image_name = "my-jrow-app"
@@ -44,28 +47,392 @@ development_port = 8080
 development_protocol = "ws"
 security_enabled = true
 
-# Define your RPC methods
+# Rate limiting (optional)
+rate_limit_enabled = true
+rate_limit_requests = 100
+rate_limit_window = "60s"
+
+# Standard JSON-RPC error codes
+[[asyncapi.error_codes]]
+code = -32700
+name = "ParseError"
+message = "Invalid JSON was received by the server"
+description = "An error occurred on the server while parsing the JSON text"
+
+[[asyncapi.error_codes]]
+code = -32600
+name = "InvalidRequest"
+message = "The JSON sent is not a valid Request object"
+description = "The request structure is malformed"
+
+[[asyncapi.error_codes]]
+code = -32601
+name = "MethodNotFound"
+message = "The method does not exist / is not available"
+description = "The requested method is not implemented"
+
+[[asyncapi.error_codes]]
+code = -32602
+name = "InvalidParams"
+message = "Invalid method parameter(s)"
+description = "The parameters provided do not match the method signature"
+
+[[asyncapi.error_codes]]
+code = -32603
+name = "InternalError"
+message = "Internal JSON-RPC error"
+description = "An unexpected error occurred on the server"
+
+# Application-specific error codes (examples)
+[[asyncapi.error_codes]]
+code = -32000
+name = "ServerError"
+message = "Server error"
+description = "Generic server error"
+
+[[asyncapi.error_codes]]
+code = -32001
+name = "Unauthorized"
+message = "Unauthorized access"
+description = "Authentication required or invalid credentials"
+
+[[asyncapi.error_codes]]
+code = -32002
+name = "RateLimitExceeded"
+message = "Rate limit exceeded"
+description = "Too many requests in the time window"
+
+# Define your RPC methods with full schemas
 [[asyncapi.methods]]
 name = "add"
+description = "Add two numbers together"
+tags = ["math", "calculation"]
+deprecated = false
+# Parameter schema (JSON Schema format)
+params_type = "object"
+params_required = ["a", "b"]
+params_properties = """
+{
+  "a": {
+    "type": "number",
+    "description": "First operand",
+    "examples": [5, 10, -3]
+  },
+  "b": {
+    "type": "number",
+    "description": "Second operand",
+    "examples": [3, 7, 2]
+  }
+}
+"""
+# Result schema
+result_type = "number"
+result_description = "Sum of a and b"
+result_examples = ["8", "17", "-1"]
+# Example for documentation
 example_params = '{"a": 5, "b": 3}'
 example_result = "8"
+# Possible errors
+error_codes = [-32602, -32603]
 
 [[asyncapi.methods]]
 name = "multiply"
+description = "Multiply two numbers"
+tags = ["math", "calculation"]
+deprecated = false
+params_type = "object"
+params_required = ["a", "b"]
+params_properties = """
+{
+  "a": {
+    "type": "number",
+    "description": "First factor",
+    "minimum": -1000000,
+    "maximum": 1000000
+  },
+  "b": {
+    "type": "number",
+    "description": "Second factor",
+    "minimum": -1000000,
+    "maximum": 1000000
+  }
+}
+"""
+result_type = "number"
+result_description = "Product of a and b"
+result_examples = ["12", "0", "-15"]
 example_params = '{"a": 3, "b": 4}'
 example_result = "12"
+error_codes = [-32602, -32603]
 
 [[asyncapi.methods]]
-name = "echo"
-example_params = '{"message": "hello"}'
-example_result = '{"echoed": "hello"}'
+name = "getUserProfile"
+description = "Get user profile information by user ID"
+tags = ["user", "profile"]
+deprecated = false
+params_type = "object"
+params_required = ["userId"]
+params_properties = """
+{
+  "userId": {
+    "type": "string",
+    "description": "Unique user identifier",
+    "pattern": "^[a-zA-Z0-9-]+$",
+    "minLength": 1,
+    "maxLength": 64,
+    "examples": ["user-123", "abc-def-456"]
+  },
+  "includePrivate": {
+    "type": "boolean",
+    "description": "Include private profile fields",
+    "default": false
+  }
+}
+"""
+result_type = "object"
+result_description = "User profile information"
+result_schema = """
+{
+  "type": "object",
+  "required": ["userId", "username", "createdAt"],
+  "properties": {
+    "userId": {
+      "type": "string",
+      "description": "User's unique identifier"
+    },
+    "username": {
+      "type": "string",
+      "description": "User's display name"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "User's email address (private)"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Account creation timestamp"
+    },
+    "settings": {
+      "type": "object",
+      "description": "User preferences"
+    }
+  }
+}
+"""
+example_params = '{"userId": "user-123", "includePrivate": false}'
+example_result = '{"userId": "user-123", "username": "alice", "createdAt": "2024-01-01T00:00:00Z"}'
+error_codes = [-32602, -32001, -32603]
 
-# Define your pub/sub topics
+[[asyncapi.methods]]
+name = "searchItems"
+description = "Search for items with pagination"
+tags = ["search", "query"]
+deprecated = false
+params_type = "object"
+params_required = ["query"]
+params_properties = """
+{
+  "query": {
+    "type": "string",
+    "description": "Search query string",
+    "minLength": 1,
+    "maxLength": 200
+  },
+  "page": {
+    "type": "integer",
+    "description": "Page number (1-indexed)",
+    "minimum": 1,
+    "default": 1
+  },
+  "pageSize": {
+    "type": "integer",
+    "description": "Number of results per page",
+    "minimum": 1,
+    "maximum": 100,
+    "default": 20
+  },
+  "filters": {
+    "type": "object",
+    "description": "Optional filters",
+    "properties": {
+      "category": {
+        "type": "string",
+        "enum": ["electronics", "books", "clothing", "home"]
+      },
+      "minPrice": {
+        "type": "number",
+        "minimum": 0
+      },
+      "maxPrice": {
+        "type": "number",
+        "minimum": 0
+      }
+    }
+  }
+}
+"""
+result_type = "object"
+result_schema = """
+{
+  "type": "object",
+  "required": ["items", "total", "page", "pageSize"],
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "name": {"type": "string"},
+          "price": {"type": "number"},
+          "category": {"type": "string"}
+        }
+      }
+    },
+    "total": {
+      "type": "integer",
+      "description": "Total number of matching items"
+    },
+    "page": {"type": "integer"},
+    "pageSize": {"type": "integer"},
+    "hasMore": {"type": "boolean"}
+  }
+}
+"""
+example_params = '{"query": "laptop", "page": 1, "pageSize": 20}'
+example_result = '{"items": [{"id": "item-1", "name": "Gaming Laptop", "price": 999.99, "category": "electronics"}], "total": 42, "page": 1, "pageSize": 20, "hasMore": true}'
+error_codes = [-32602, -32603]
+
+# Define your pub/sub topics with full schemas
 [[asyncapi.topics]]
 name = "stock.prices"
-example_params = '{"symbol": "AAPL", "price": 150.0}'
+description = "Real-time stock price updates"
+tags = ["market", "realtime"]
+pattern_type = "exact"  # or "wildcard" for pattern matching
+# Message schema
+message_type = "object"
+message_required = ["symbol", "price", "timestamp"]
+message_properties = """
+{
+  "symbol": {
+    "type": "string",
+    "description": "Stock ticker symbol",
+    "pattern": "^[A-Z]{1,5}$",
+    "examples": ["AAPL", "GOOGL", "MSFT"]
+  },
+  "price": {
+    "type": "number",
+    "description": "Current stock price in USD",
+    "minimum": 0,
+    "exclusiveMinimum": true
+  },
+  "change": {
+    "type": "number",
+    "description": "Price change from previous close"
+  },
+  "changePercent": {
+    "type": "number",
+    "description": "Percentage change from previous close"
+  },
+  "volume": {
+    "type": "integer",
+    "description": "Trading volume",
+    "minimum": 0
+  },
+  "timestamp": {
+    "type": "string",
+    "format": "date-time",
+    "description": "Update timestamp in ISO 8601 format"
+  }
+}
+"""
+example_params = '{"symbol": "AAPL", "price": 150.25, "change": 2.50, "changePercent": 1.69, "volume": 52000000, "timestamp": "2024-12-27T15:30:00Z"}'
+publish_rate = "High (multiple per second)"
 
 [[asyncapi.topics]]
 name = "chat.messages"
-example_params = '{"user": "alice", "message": "Hello world"}'
+description = "Chat messages in various channels"
+tags = ["chat", "messaging"]
+pattern_type = "exact"
+message_type = "object"
+message_required = ["channelId", "userId", "username", "message", "timestamp"]
+message_properties = """
+{
+  "channelId": {
+    "type": "string",
+    "description": "Chat channel identifier"
+  },
+  "userId": {
+    "type": "string",
+    "description": "Sender's user ID"
+  },
+  "username": {
+    "type": "string",
+    "description": "Sender's display name",
+    "minLength": 1,
+    "maxLength": 50
+  },
+  "message": {
+    "type": "string",
+    "description": "Message content",
+    "minLength": 1,
+    "maxLength": 2000
+  },
+  "timestamp": {
+    "type": "string",
+    "format": "date-time",
+    "description": "Message timestamp"
+  },
+  "attachments": {
+    "type": "array",
+    "description": "Optional message attachments",
+    "items": {
+      "type": "object",
+      "properties": {
+        "type": {"type": "string", "enum": ["image", "file", "link"]},
+        "url": {"type": "string", "format": "uri"}
+      }
+    }
+  }
+}
+"""
+example_params = '{"channelId": "general", "userId": "user-456", "username": "alice", "message": "Hello world!", "timestamp": "2024-12-27T15:30:00Z"}'
+publish_rate = "Medium"
 
+[[asyncapi.topics]]
+name = "system.alerts"
+description = "System alerts and notifications"
+tags = ["system", "monitoring"]
+pattern_type = "exact"
+message_type = "object"
+message_required = ["level", "message", "timestamp"]
+message_properties = """
+{
+  "level": {
+    "type": "string",
+    "description": "Alert severity level",
+    "enum": ["info", "warning", "error", "critical"]
+  },
+  "message": {
+    "type": "string",
+    "description": "Alert message"
+  },
+  "component": {
+    "type": "string",
+    "description": "System component that generated the alert"
+  },
+  "timestamp": {
+    "type": "string",
+    "format": "date-time",
+    "description": "Alert timestamp"
+  },
+  "metadata": {
+    "type": "object",
+    "description": "Additional alert metadata"
+  }
+}
+"""
+example_params = '{"level": "warning", "message": "High memory usage detected", "component": "api-server", "timestamp": "2024-12-27T15:30:00Z"}'
+publish_rate = "Low (as needed)"

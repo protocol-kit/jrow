@@ -1,11 +1,11 @@
-//! JROW Template Generator
+//! JROW Template Generator - Schema-First Edition
 //!
 //! This tool generates deployment configurations and documentation for JROW
 //! applications from templates. It produces:
 //!
 //! - **Docker**: Dockerfile and docker-compose.yml
 //! - **Kubernetes**: Deployment and ConfigMap manifests
-//! - **AsyncAPI**: API documentation in AsyncAPI format
+//! - **AsyncAPI**: API documentation in AsyncAPI 3.0.0 format with full type safety
 //! - **Scripts**: Deployment automation scripts
 //!
 //! # Usage
@@ -27,11 +27,24 @@
 //!
 //! The tool reads settings from a TOML file (default: `jrow-template.toml`)
 //! containing:
-//! - Project metadata (name, version, description)
-//! - Server configuration (ports, batch mode)
+//! - Project metadata (name, version, description, contact info)
+//! - Server configuration (ports, batch mode, connection limits)
 //! - Docker settings (image name, registry)
 //! - Kubernetes settings (replicas, resources)
-//! - AsyncAPI documentation (methods, topics)
+//! - AsyncAPI documentation with full schemas:
+//!   - Error code catalog
+//!   - Method definitions with JSON Schema for params and results
+//!   - Topic definitions with message schemas
+//!   - Validation rules and constraints
+//!
+//! # Schema-First Features
+//!
+//! The AsyncAPI generator now supports:
+//! - **Full type safety**: Complete JSON Schema for all parameters and results
+//! - **Validation rules**: minLength, maxLength, pattern, minimum, maximum, etc.
+//! - **Error catalog**: Standard JSON-RPC and custom error codes
+//! - **Rich documentation**: Descriptions, examples, tags, deprecation flags
+//! - **Code generation**: Type-safe SDK generation for multiple languages
 //!
 //! # Output Structure
 //!
@@ -46,7 +59,7 @@
 //! │   └── configmap.yaml
 //! ├── scripts/
 //! │   └── deploy.sh
-//! ├── asyncapi.yaml
+//! ├── asyncapi.yaml          # Schema-first AsyncAPI 3.0.0 spec
 //! └── README.md
 //! ```
 //!
@@ -97,6 +110,7 @@ struct ProjectConfig {
     license_url: Option<String>,
     contact_name: Option<String>,
     contact_url: Option<String>,
+    contact_email: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -106,6 +120,8 @@ struct ServerConfig {
     batch_mode: String,
     max_connections: u32,
     connection_timeout: u32,
+    max_request_size: Option<u64>,
+    max_batch_size: Option<u32>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -140,21 +156,51 @@ struct AsyncApiConfig {
     development_port: u16,
     development_protocol: String,
     security_enabled: bool,
+    rate_limit_enabled: Option<bool>,
+    rate_limit_requests: Option<u32>,
+    rate_limit_window: Option<String>,
+    error_codes: Vec<ErrorCode>,
     methods: Vec<RpcMethod>,
     topics: Vec<PubSubTopic>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+struct ErrorCode {
+    code: i32,
+    name: String,
+    message: String,
+    description: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 struct RpcMethod {
     name: String,
+    description: Option<String>,
+    tags: Option<Vec<String>>,
+    deprecated: Option<bool>,
+    params_type: Option<String>,
+    params_required: Option<Vec<String>>,
+    params_properties: Option<String>,
+    result_type: Option<String>,
+    result_description: Option<String>,
+    result_schema: Option<String>,
+    result_examples: Option<Vec<String>>,
     example_params: Option<String>,
     example_result: Option<String>,
+    error_codes: Option<Vec<i32>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 struct PubSubTopic {
     name: String,
+    description: Option<String>,
+    tags: Option<Vec<String>>,
+    pattern_type: Option<String>,
+    message_type: Option<String>,
+    message_required: Option<Vec<String>>,
+    message_properties: Option<String>,
     example_params: Option<String>,
+    publish_rate: Option<String>,
 }
 
 impl Default for TemplateConfig {
@@ -162,13 +208,14 @@ impl Default for TemplateConfig {
         Self {
             project: ProjectConfig {
                 name: "my-jrow-app".to_string(),
-                description: "My JROW-based application".to_string(),
+                description: "My JROW-based application with full type safety".to_string(),
                 version: "0.1.0".to_string(),
                 rust_version: "1.75".to_string(),
                 license: "MIT".to_string(),
                 license_url: Some("https://opensource.org/licenses/MIT".to_string()),
                 contact_name: Some("API Support".to_string()),
-                contact_url: None,
+                contact_url: Some("https://github.com/myuser/my-jrow-app".to_string()),
+                contact_email: Some("support@example.com".to_string()),
             },
             server: ServerConfig {
                 bind_address: "0.0.0.0".to_string(),
@@ -176,6 +223,8 @@ impl Default for TemplateConfig {
                 batch_mode: "Parallel".to_string(),
                 max_connections: 1000,
                 connection_timeout: 300,
+                max_request_size: Some(1048576), // 1MB
+                max_batch_size: Some(100),
             },
             docker: DockerConfig {
                 image_name: "my-jrow-app".to_string(),
@@ -201,22 +250,128 @@ impl Default for TemplateConfig {
                 development_port: 8080,
                 development_protocol: "ws".to_string(),
                 security_enabled: true,
+                rate_limit_enabled: Some(true),
+                rate_limit_requests: Some(100),
+                rate_limit_window: Some("60s".to_string()),
+                error_codes: vec![
+                    ErrorCode {
+                        code: -32700,
+                        name: "ParseError".to_string(),
+                        message: "Invalid JSON was received by the server".to_string(),
+                        description: "An error occurred on the server while parsing the JSON text".to_string(),
+                    },
+                    ErrorCode {
+                        code: -32600,
+                        name: "InvalidRequest".to_string(),
+                        message: "The JSON sent is not a valid Request object".to_string(),
+                        description: "The request structure is malformed".to_string(),
+                    },
+                    ErrorCode {
+                        code: -32601,
+                        name: "MethodNotFound".to_string(),
+                        message: "The method does not exist / is not available".to_string(),
+                        description: "The requested method is not implemented".to_string(),
+                    },
+                    ErrorCode {
+                        code: -32602,
+                        name: "InvalidParams".to_string(),
+                        message: "Invalid method parameter(s)".to_string(),
+                        description: "The parameters provided do not match the method signature".to_string(),
+                    },
+                    ErrorCode {
+                        code: -32603,
+                        name: "InternalError".to_string(),
+                        message: "Internal JSON-RPC error".to_string(),
+                        description: "An unexpected error occurred on the server".to_string(),
+                    },
+                ],
                 methods: vec![
                     RpcMethod {
                         name: "add".to_string(),
+                        description: Some("Add two numbers together".to_string()),
+                        tags: Some(vec!["math".to_string(), "calculation".to_string()]),
+                        deprecated: None,
+                        params_type: Some("object".to_string()),
+                        params_required: Some(vec!["a".to_string(), "b".to_string()]),
+                        params_properties: Some(r#"{
+  "a": {
+    "type": "number",
+    "description": "First operand",
+    "examples": [5, 10, -3]
+  },
+  "b": {
+    "type": "number",
+    "description": "Second operand",
+    "examples": [3, 7, 2]
+  }
+}"#.to_string()),
+                        result_type: Some("number".to_string()),
+                        result_description: Some("Sum of a and b".to_string()),
+                        result_schema: None,
+                        result_examples: Some(vec!["8".to_string(), "17".to_string()]),
                         example_params: Some(r#"{"a": 5, "b": 3}"#.to_string()),
                         example_result: Some("8".to_string()),
+                        error_codes: Some(vec![-32602, -32603]),
                     },
                     RpcMethod {
                         name: "echo".to_string(),
+                        description: Some("Echo back the provided message".to_string()),
+                        tags: Some(vec!["utility".to_string()]),
+                        deprecated: None,
+                        params_type: Some("object".to_string()),
+                        params_required: Some(vec!["message".to_string()]),
+                        params_properties: Some(r#"{
+  "message": {
+    "type": "string",
+    "description": "Message to echo",
+    "minLength": 1,
+    "maxLength": 1000
+  }
+}"#.to_string()),
+                        result_type: Some("object".to_string()),
+                        result_description: Some("Echo response".to_string()),
+                        result_schema: Some(r#"{
+  "type": "object",
+  "required": ["echoed"],
+  "properties": {
+    "echoed": {
+      "type": "string",
+      "description": "The echoed message"
+    }
+  }
+}"#.to_string()),
+                        result_examples: None,
                         example_params: Some(r#"{"message": "hello"}"#.to_string()),
                         example_result: Some(r#"{"echoed": "hello"}"#.to_string()),
+                        error_codes: Some(vec![-32602, -32603]),
                     },
                 ],
                 topics: vec![
                     PubSubTopic {
-                        name: "example.topic".to_string(),
-                        example_params: Some(r#"{"data": "value"}"#.to_string()),
+                        name: "events.user".to_string(),
+                        description: Some("User-related events".to_string()),
+                        tags: Some(vec!["events".to_string(), "user".to_string()]),
+                        pattern_type: Some("exact".to_string()),
+                        message_type: Some("object".to_string()),
+                        message_required: Some(vec!["userId".to_string(), "eventType".to_string(), "timestamp".to_string()]),
+                        message_properties: Some(r#"{
+  "userId": {
+    "type": "string",
+    "description": "User identifier"
+  },
+  "eventType": {
+    "type": "string",
+    "enum": ["login", "logout", "update"],
+    "description": "Type of user event"
+  },
+  "timestamp": {
+    "type": "string",
+    "format": "date-time",
+    "description": "Event timestamp"
+  }
+}"#.to_string()),
+                        example_params: Some(r#"{"userId": "user-123", "eventType": "login", "timestamp": "2024-12-27T15:30:00Z"}"#.to_string()),
+                        publish_rate: Some("Medium".to_string()),
                     },
                 ],
             },

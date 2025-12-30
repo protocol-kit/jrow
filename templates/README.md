@@ -1,331 +1,409 @@
-# JROW Templates
+# JROW AsyncAPI Templates - Schema-First Edition
 
-This directory contains templates for the JROW project and projects built with JROW.
+## Quick Start
 
-## Directory Structure
-
-```
-templates/
-├── asyncapi.yaml.tera     # AsyncAPI 3.0 specification template
-├── asyncapi.yaml          # Static AsyncAPI spec (for JROW itself)
-├── .asyncapi-studio       # AsyncAPI Studio configuration
-├── deploy/                # Deployment template files (Tera templates)
-│   ├── docker/
-│   │   ├── Dockerfile.tera
-│   │   └── docker-compose.yml.tera
-│   ├── k8s/
-│   │   ├── deployment.yaml.tera
-│   │   └── configmap.yaml.tera
-│   ├── scripts/
-│   │   ├── deploy.sh        # Static deployment script (for JROW itself)
-│   │   └── deploy.sh.tera   # Deployment script template
-│   └── README.md.tera
-└── README.md             # This file
-```
-
-## Contents
-
-### AsyncAPI Specification
-
-- **`asyncapi.yaml`**: Static AsyncAPI 3.0 specification for the JROW framework itself
-- **`asyncapi.yaml.tera`**: Customizable AsyncAPI template for your JROW-based projects
-
-The template allows you to define your custom RPC methods, pub/sub topics, and server configurations.
-
-See the AsyncAPI section below for usage details.
-
-### Deployment Templates (Tera)
-
-The `deploy/` directory contains **Tera templates** for generating deployment configurations for projects built with JROW.
-
-**Important**: These are templates, not ready-to-use deployment files. They need to be rendered with your project's configuration.
-
-## Using Deployment Templates
-
-### 1. Install Template Generator
+### 1. Copy Configuration Template
 
 ```bash
-# Build and install the template generator tool
-make template-gen-build
-make template-gen-install
+cp templates/jrow-template.toml ./jrow-config.toml
 ```
 
-Or manually:
+### 2. Customize Your API
 
-```bash
-cd tools/template-gen
-cargo build --release
-cargo install --path .
-```
-
-### 2. Initialize Configuration
-
-```bash
-# Copy the template configuration
-cp templates/jrow-template.toml jrow-template.toml
-
-# Or use make
-make template-init
-```
-
-### 3. Edit Configuration
-
-Edit `jrow-template.toml` with your project details:
+Edit `jrow-config.toml` with your methods and topics:
 
 ```toml
-[project]
-name = "my-jrow-app"
-description = "My WebSocket RPC service"
-version = "0.1.0"
-license = "MIT"
+[[asyncapi.methods]]
+name = "myMethod"
+description = "What this method does"
+params_type = "object"
+params_required = ["field1", "field2"]
+params_properties = """
+{
+  "field1": {"type": "string", "description": "..."},
+  "field2": {"type": "number", "minimum": 0}
+}
+"""
+result_type = "object"
+result_schema = """
+{
+  "type": "object",
+  "properties": {
+    "result": {"type": "string"}
+  }
+}
+"""
+```
 
-[server]
-bind_address = "0.0.0.0"
-port = 8080
-batch_mode = "Parallel"
+### 3. Generate AsyncAPI Specification
 
-[docker]
-image_name = "my-jrow-app"
-registry = "docker.io/myuser"
-expose_ports = [8080]
+```bash
+# Using your template engine (Tera/Jinja2/etc)
+tera render templates/asyncapi.yaml.tera jrow-config.toml > asyncapi.yaml
+```
 
-[kubernetes]
-namespace = "production"
-replicas = 3
-service_type = "LoadBalancer"
+### 4. Validate & Generate
 
-[asyncapi]
-production_host = "api.example.com"
-production_port = 443
-production_protocol = "wss"
-development_host = "localhost"
-development_port = 8080
-development_protocol = "ws"
-security_enabled = true
+```bash
+# Validate the spec
+asyncapi validate asyncapi.yaml
 
-# Define your RPC methods
+# Generate documentation
+asyncapi generate fromTemplate asyncapi.yaml @asyncapi/html-template -o docs/
+
+# Generate TypeScript client
+asyncapi generate fromTemplate asyncapi.yaml @asyncapi/ts-nats-template -o client/
+```
+
+## What's New in Schema-First?
+
+### 🎯 Full Type Safety
+
+Every method includes complete JSON Schema definitions:
+- ✅ Parameter types with validation rules
+- ✅ Result types with nested structures
+- ✅ Error code associations
+- ✅ Field-level documentation
+
+### 📋 Rich Documentation
+
+Auto-generated docs include:
+- ✅ Method descriptions and examples
+- ✅ Parameter constraints
+- ✅ Return type structures
+- ✅ Error catalog
+- ✅ Rate limiting info
+
+### 🔧 Better Code Generation
+
+Generate type-safe SDKs in:
+- TypeScript, Python, Rust, Go, Java, and more
+- Full IntelliSense/autocomplete support
+- Compile-time type checking
+- Runtime validation
+
+## Files
+
+| File | Purpose |
+|------|---------|
+| `jrow-template.toml` | Configuration template with examples |
+| `asyncapi.yaml.tera` | Schema-first AsyncAPI template |
+| `asyncapi.yaml` | Pre-generated example output |
+| `ASYNCAPI_REDESIGN.md` | Complete redesign documentation |
+| `SCHEMA_COMPARISON.md` | Before/after comparison |
+| `VALIDATION_REPORT.md` | Template validation results |
+| `README.md` | This file |
+
+## Examples
+
+### Simple Method
+
+```toml
 [[asyncapi.methods]]
 name = "add"
+description = "Add two numbers"
+params_type = "object"
+params_required = ["a", "b"]
+params_properties = """
+{
+  "a": {"type": "number"},
+  "b": {"type": "number"}
+}
+"""
+result_type = "number"
 example_params = '{"a": 5, "b": 3}'
 example_result = "8"
+```
 
+### Complex Method
+
+```toml
 [[asyncapi.methods]]
-name = "getUserProfile"
-example_params = '{"userId": "123"}'
-example_result = '{"id": "123", "name": "Alice"}'
+name = "searchItems"
+description = "Search with pagination and filters"
+params_type = "object"
+params_required = ["query"]
+params_properties = """
+{
+  "query": {
+    "type": "string",
+    "minLength": 1,
+    "maxLength": 200
+  },
+  "page": {
+    "type": "integer",
+    "minimum": 1,
+    "default": 1
+  },
+  "filters": {
+    "type": "object",
+    "properties": {
+      "category": {
+        "type": "string",
+        "enum": ["electronics", "books", "clothing"]
+      }
+    }
+  }
+}
+"""
+result_schema = """
+{
+  "type": "object",
+  "required": ["items", "total"],
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {"type": "object"}
+    },
+    "total": {"type": "integer"}
+  }
+}
+"""
+```
 
-# Define your pub/sub topics
+### Pub/Sub Topic
+
+```toml
 [[asyncapi.topics]]
 name = "stock.prices"
-example_params = '{"symbol": "AAPL", "price": 150.0}'
-
-[[asyncapi.topics]]
-name = "chat.messages"
-example_params = '{"user": "alice", "message": "Hello"}'
+description = "Real-time stock updates"
+message_type = "object"
+message_required = ["symbol", "price", "timestamp"]
+message_properties = """
+{
+  "symbol": {
+    "type": "string",
+    "pattern": "^[A-Z]{1,5}$"
+  },
+  "price": {
+    "type": "number",
+    "minimum": 0
+  },
+  "timestamp": {
+    "type": "string",
+    "format": "date-time"
+  }
+}
+"""
 ```
 
-### 4. Generate Deployment Files
+## Validation Rules
 
-```bash
-# Generate deployment files
-make template-generate
-
-# Or run the tool directly
-jrow-template-gen -c jrow-template.toml -o deploy
+### Strings
+```json
+{
+  "type": "string",
+  "minLength": 1,
+  "maxLength": 100,
+  "pattern": "^[a-zA-Z0-9]+$",
+  "format": "email"  // or "uri", "date-time", etc.
+}
 ```
 
-This will create a `deploy/` directory with:
-- `deploy/docker/Dockerfile` - Your customized Dockerfile
-- `deploy/docker/docker-compose.yml` - Docker Compose config
-- `deploy/k8s/deployment.yaml` - Kubernetes Deployment and Service
-- `deploy/k8s/configmap.yaml` - Kubernetes ConfigMap
-- `deploy/scripts/deploy.sh` - Deployment script (executable)
-- `deploy/README.md` - Deployment documentation
-- `deploy/asyncapi.yaml` - Your customized AsyncAPI specification
-
-### 5. Deploy Your Application
-
-```bash
-# Use the generated deployment script
-cd deploy
-./scripts/deploy.sh docker      # Deploy with Docker
-./scripts/deploy.sh k8s          # Deploy to Kubernetes
-./scripts/deploy.sh build        # Build release binary
-./scripts/deploy.sh run          # Run locally
-./scripts/deploy.sh status       # Check status
-./scripts/deploy.sh help         # Show all commands
-
-# Or use make targets from project root
-make deploy-docker
-make deploy-k8s
+### Numbers
+```json
+{
+  "type": "number",
+  "minimum": 0,
+  "maximum": 100,
+  "exclusiveMinimum": true,
+  "multipleOf": 0.01
+}
 ```
 
-## Template Variables
-
-The templates support the following variables:
-
-### Project
-- `project.name` - Project name
-- `project.description` - Project description
-- `project.version` - Version
-- `project.rust_version` - Rust version for Docker
-
-### Server
-- `server.bind_address` - Bind address
-- `server.port` - Port number
-- `server.batch_mode` - Batch processing mode
-- `server.max_connections` - Max connections
-- `server.connection_timeout` - Timeout in seconds
-
-### Docker
-- `docker.image_name` - Docker image name
-- `docker.registry` - Docker registry (optional)
-- `docker.expose_ports` - Array of ports to expose
-
-### Kubernetes
-- `kubernetes.namespace` - K8s namespace
-- `kubernetes.replicas` - Number of replicas
-- `kubernetes.service_type` - Service type (LoadBalancer/ClusterIP/NodePort)
-- `kubernetes.resources.*` - CPU and memory requests/limits
-
-### AsyncAPI
-- `asyncapi.production_host` - Production server host
-- `asyncapi.production_port` - Production server port
-- `asyncapi.production_protocol` - Production protocol (wss/ws)
-- `asyncapi.development_host` - Development server host
-- `asyncapi.development_port` - Development server port
-- `asyncapi.development_protocol` - Development protocol (ws)
-- `asyncapi.security_enabled` - Enable security schemes
-- `asyncapi.methods` - Array of RPC methods with examples
-- `asyncapi.topics` - Array of pub/sub topics with examples
-
-## Deployment Script
-
-The generated `deploy/scripts/deploy.sh` is a comprehensive deployment script with:
-
-**Commands:**
-- `docker` - Deploy using Docker Compose
-- `k8s` - Deploy to Kubernetes cluster
-- `build` - Build release binary
-- `run` - Run server locally with cargo
-- `push` - Push Docker image to registry (if configured)
-- `status` - Check deployment status
-- `cleanup` - Clean up Docker/Kubernetes resources
-
-**Features:**
-- Colored output for better readability
-- Error handling and validation
-- Automatic namespace creation for Kubernetes
-- Optional image and namespace cleanup
-- Environment variable configuration
-- Help documentation
-
-**Example Usage:**
-```bash
-# Deploy to Docker
-./deploy/scripts/deploy.sh docker
-
-# Check status
-./deploy/scripts/deploy.sh status docker
-
-# Deploy to Kubernetes
-./deploy/scripts/deploy.sh k8s
-
-# Clean up
-./deploy/scripts/deploy.sh cleanup docker
+### Arrays
+```json
+{
+  "type": "array",
+  "minItems": 1,
+  "maxItems": 10,
+  "items": {"type": "string"}
+}
 ```
 
-## AsyncAPI Specification
+### Objects
+```json
+{
+  "type": "object",
+  "required": ["field1", "field2"],
+  "properties": {
+    "field1": {"type": "string"},
+    "field2": {"type": "number"}
+  },
+  "additionalProperties": false
+}
+```
 
-### Using the AsyncAPI Template
+### Enums
+```json
+{
+  "type": "string",
+  "enum": ["option1", "option2", "option3"]
+}
+```
 
-The `asyncapi.yaml.tera` template allows you to generate customized API documentation for your JROW-based project.
+## Error Codes
 
-**Steps:**
+Define error codes once, reference everywhere:
 
-1. **Configure your API** in `jrow-template.toml` (see example above)
-2. **Generate the spec**: `make template-generate`
-3. **Use the generated spec**: `deploy/asyncapi.yaml`
+```toml
+# Define error codes
+[[asyncapi.error_codes]]
+code = -32001
+name = "Unauthorized"
+message = "Authentication required"
+description = "The request requires authentication"
 
-### View in AsyncAPI Studio
+# Reference in methods
+[[asyncapi.methods]]
+name = "getProfile"
+error_codes = [-32602, -32001, -32603]  # InvalidParams, Unauthorized, InternalError
+```
 
-**For JROW framework itself:**
-1. Go to [AsyncAPI Studio](https://studio.asyncapi.com/)
-2. Import `templates/asyncapi.yaml`
-3. Explore the interactive documentation
+## Best Practices
 
-**For your generated spec:**
-1. Go to [AsyncAPI Studio](https://studio.asyncapi.com/)
-2. Import `deploy/asyncapi.yaml`
-3. Explore your customized API documentation
+### 1. Always Specify Types
 
-### Generate Documentation
+```toml
+# Good ✅
+params_type = "object"
+result_type = "number"
 
+# Avoid ❌
+# No type specification
+```
+
+### 2. Include Descriptions
+
+```toml
+description = "Clear description of what this method does"
+params_properties = """
+{
+  "userId": {
+    "type": "string",
+    "description": "Unique user identifier"  # Always describe fields
+  }
+}
+"""
+```
+
+### 3. Add Validation Rules
+
+```toml
+params_properties = """
+{
+  "email": {
+    "type": "string",
+    "format": "email",      # Validation
+    "minLength": 3,         # Validation
+    "maxLength": 255        # Validation
+  }
+}
+"""
+```
+
+### 4. Tag Your APIs
+
+```toml
+tags = ["user", "profile", "authenticated"]  # Helps organization
+```
+
+### 5. Document Errors
+
+```toml
+error_codes = [-32602, -32603, -32001]  # List expected errors
+```
+
+## Migration from Old Template
+
+### Level 1: Minimal (5 mins)
+```toml
+# Add basic fields
+description = "..."
+params_type = "object"
+result_type = "string"
+```
+
+### Level 2: Typed (15 mins)
+```toml
+# Add schema structures
+params_required = ["field1"]
+params_properties = """{ "field1": {"type": "string"} }"""
+result_schema = """{ "type": "object", ... }"""
+```
+
+### Level 3: Complete (30 mins)
+```toml
+# Add validation and documentation
+params_properties = """
+{
+  "field1": {
+    "type": "string",
+    "minLength": 1,
+    "maxLength": 100,
+    "description": "Field description",
+    "examples": ["example1", "example2"]
+  }
+}
+"""
+error_codes = [-32602, -32603]
+tags = ["category"]
+```
+
+## Tools
+
+### AsyncAPI CLI
 ```bash
-# Install AsyncAPI CLI
 npm install -g @asyncapi/cli
 
-# Validate your generated spec
-asyncapi validate deploy/asyncapi.yaml
+# Validate
+asyncapi validate asyncapi.yaml
 
-# Generate HTML documentation
-asyncapi generate fromTemplate deploy/asyncapi.yaml @asyncapi/html-template -o docs/
+# Generate docs
+asyncapi generate fromTemplate asyncapi.yaml @asyncapi/html-template -o ./docs
 
-# Generate Markdown documentation
-asyncapi generate fromTemplate deploy/asyncapi.yaml @asyncapi/markdown-template -o docs/
-
-# Or use make targets (for JROW framework spec)
-make asyncapi-html
-make asyncapi-md
-make asyncapi-validate
+# Generate client
+asyncapi generate fromTemplate asyncapi.yaml @asyncapi/ts-nats-template -o ./client
 ```
 
-### What's Documented
+### AsyncAPI Studio
+Online editor and validator:
+https://studio.asyncapi.com/
 
-- Core JSON-RPC 2.0 operations (request/response, notifications, batches)
-- Pub/Sub operations (subscribe, unsubscribe, topic notifications)
-- Batch operations (batch subscribe/unsubscribe, batch publish)
-- Your custom RPC methods with example parameters and results
-- Your custom pub/sub topics with example data
-- Message formats and schemas
-- Server definitions (production and development)
-- Security schemes (Bearer token, API key)
+### Code Generators
+- TypeScript: `@asyncapi/ts-nats-template`
+- Python: `@asyncapi/python-paho-template`
+- Java: `@asyncapi/java-spring-template`
+- More: https://www.asyncapi.com/tools/generator
 
-## For JROW Contributors
+## Support
 
-When updating JROW features:
+- 📖 **Full Documentation:** [ASYNCAPI_REDESIGN.md](ASYNCAPI_REDESIGN.md)
+- 🔄 **Before/After Guide:** [SCHEMA_COMPARISON.md](SCHEMA_COMPARISON.md)
+- ✅ **Validation Report:** [VALIDATION_REPORT.md](VALIDATION_REPORT.md)
+- 💬 **Issues:** [GitHub Issues](https://github.com/protocol-kit/jrow/issues)
 
-1. **AsyncAPI**: Update both `asyncapi.yaml` (static) and `asyncapi.yaml.tera` (template) with new operations
-2. **Templates**: Update `.tera` files if deployment needs change
-3. **Generator**: Update `tools/template-gen` if new config options needed
-4. **Validate**: Run `asyncapi validate templates/asyncapi.yaml`
-5. **Test**: Generate templates with `make template-generate` and test deployment
-6. **Document**: Update this README
+## Features
 
-### Maintaining Two AsyncAPI Files
-
-- **`asyncapi.yaml`**: Static specification for JROW framework itself (for documentation)
-- **`asyncapi.yaml.tera`**: Template for user projects (for generation)
-
-When adding new features, update both files to keep them in sync.
-
-## Tools and Resources
-
-### Tera Template Engine
-- [Tera Documentation](https://tera.netlify.app/)
-- [Template Syntax](https://tera.netlify.app/docs/#templates)
-
-### AsyncAPI
-- [AsyncAPI Studio](https://studio.asyncapi.com/)
-- [AsyncAPI CLI](https://github.com/asyncapi/cli)
-- [AsyncAPI Generator](https://github.com/asyncapi/generator)
-- [AsyncAPI Specification](https://www.asyncapi.com/docs/reference/specification/latest)
-
-### Deployment
-- [Docker Documentation](https://docs.docker.com/)
-- [Kubernetes Documentation](https://kubernetes.io/docs/)
-- [Docker Compose](https://docs.docker.com/compose/)
+| Feature | Support |
+|---------|---------|
+| JSON-RPC 2.0 | ✅ |
+| Request/Response | ✅ |
+| Notifications | ✅ |
+| Batch requests | ✅ |
+| Pub/Sub | ✅ |
+| Full type safety | ✅ |
+| Validation rules | ✅ |
+| Error catalog | ✅ |
+| Code generation | ✅ |
+| AsyncAPI 3.0.0 | ✅ |
 
 ## License
 
-Same as the main JROW project (MIT).
+Same as JROW project (see root LICENSE file).
+
+---
+
+**Version:** Schema-First v1.0  
+**AsyncAPI:** 3.0.0  
+**Updated:** 2025-12-27

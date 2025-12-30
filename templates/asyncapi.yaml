@@ -14,7 +14,7 @@ info:
     url: https://opensource.org/licenses/MIT
   contact:
     name: API Support
-    url: https://github.com/protocol-kit/jsow
+    url: https://github.com/protocol-kit/jrow
 
 servers:
   production:

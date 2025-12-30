@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 authors = ["artbin"]
 license = "MIT-0 OR CC0-1.0"
-repository = "https://github.com/protocol-kit/jsow"
+repository = "https://github.com/protocol-kit/jrow"
 
 [workspace]
 members = [
@@ -23,7 +23,7 @@ version = "0.1.0"
 edition = "2021"
 authors = ["artbin"]
 license = "MIT-0 OR CC0-1.0"
-repository = "https://github.com/protocol-kit/jsow"
+repository = "https://github.com/protocol-kit/jrow"
 
 [workspace.dependencies]
 # Core dependencies
