@@ -748,3 +748,4 @@ example_params = '{"symbol": "AAPL", "price": 150.0}'
 The investment in detailed schemas pays dividends through better tooling, fewer bugs, and clearer contracts.
 
 
+
