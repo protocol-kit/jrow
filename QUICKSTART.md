@@ -56,7 +56,7 @@ JROW includes 23 comprehensive examples demonstrating all features:
 - **`observability_server.rs` / `observability_client.rs`** - OpenTelemetry distributed tracing
 - **`observability_full.rs`** - Complete observability demo with all features
 
-### Web UI
+### Playgroud
 
 - **`playgroud_server.rs`** - Full-featured server with embedded web UI (all-in-one demo)
 
