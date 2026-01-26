@@ -73,40 +73,6 @@ cargo test --all
 cargo build --all --release
 ```
 
-## Project Structure
-
-```
-jrow/
-├── jrow-core/          # Core JSON-RPC types and codec
-├── jrow-server/        # Server implementation
-├── jrow-client/        # Client implementation
-├── jrow-macros/        # Procedural macros
-└── examples/           # Example applications (23 examples)
-    ├── simple_server.rs
-    ├── simple_client.rs
-    ├── bidirectional.rs
-    ├── pubsub.rs
-    ├── pubsub_batch.rs
-    ├── subscription_filters.rs
-    ├── in_memory_pattern_matching.rs
-    ├── persistent_server.rs
-    ├── persistent_client.rs
-    ├── persistent_pubsub.rs
-    ├── persistent_batch.rs
-    ├── persistent_pattern_matching.rs
-    ├── persistent_pattern_server.rs
-    ├── persistent_pattern_client.rs
-    ├── batch.rs
-    ├── publish_batch.rs
-    ├── middleware_example.rs
-    ├── reconnection_client.rs
-    ├── reconnection_server.rs
-    ├── observability_server.rs
-    ├── observability_client.rs
-    ├── observability_full.rs
-    └── server_with_ui.rs
-```
-
 ## Creating a Server
 
 ```rust
