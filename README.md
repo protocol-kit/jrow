@@ -85,46 +85,11 @@ make run-playground         # Start web UI client on http://localhost:8000
 make doc                # Generate Rust docs
 make asyncapi-html      # Generate AsyncAPI docs
 
-# Docker
-make docker-build       # Build Docker image
-make docker-compose-up  # Start with docker-compose
-
-# Kubernetes
-make k8s-apply          # Deploy to Kubernetes
-make k8s-status         # Check deployment status
-
 # All-in-one
 make all                # Build, test, and lint
 make pre-commit         # Run pre-commit checks
 make help               # Show all available targets
 ```
-
-## Deployment Templates
-
-JROW includes **Tera-based deployment templates** for projects built with JROW:
-
-- **Docker**: Customizable Dockerfile and docker-compose.yml
-- **Kubernetes**: Deployment manifests with configurable resources
-- **Template Generator**: CLI tool to render templates with your config
-
-### Generate Deployment Files
-
-```bash
-# 1. Copy template configuration
-cp templates/jrow-template.toml jrow-template.toml
-
-# 2. Edit jrow-template.toml with your project details
-
-# 3. Generate deployment files
-make template-generate
-
-# 4. Deploy
-make deploy-docker    # or make deploy-k8s
-```
-
-The template generator creates customized deployment files for **your application** that uses JROW, not for JROW itself.
-
-See [`templates/README.md`](templates/README.md) for detailed documentation.
 
 ## Quick Start
 
@@ -226,27 +191,10 @@ JROW includes a **beautiful web-based client** for testing and interacting with 
 
 ```bash
 # Start server with embedded web UI
-make run-server-ui
+make run-playground
 
 # Opens on http://127.0.0.1:8080
 # Automatically configured and ready to test!
-```
-
-### Alternative: Separate Server and UI
-
-```bash
-# Terminal 1: Start JROW server
-make run-simple
-
-# Terminal 2: Start web UI
-make run-playground
-
-# Browser: Connect to ws://localhost:8080 and test!
-```
-
-**Or open directly:**
-```bash
-open playground/index.html
 ```
 
 See [`playground/README.md`](playground/README.md) for detailed usage guide.
