@@ -81,7 +81,9 @@ impl NotificationHandler {
 
             handler(notification).await;
         } else {
-            eprintln!("No handler registered for notification: {}", method);
+            // Debug level: notifications are often sent for persistent subscriptions
+            // but aren't needed since data comes through a different mechanism
+            tracing::debug!("No handler registered for notification: {}", method);
         }
     }
 

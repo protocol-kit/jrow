@@ -746,6 +746,3 @@ example_params = '{"symbol": "AAPL", "price": 150.0}'
 5. **Refine**: Improve based on generated code quality
 
 The investment in detailed schemas pays dividends through better tooling, fewer bugs, and clearer contracts.
-
-
-

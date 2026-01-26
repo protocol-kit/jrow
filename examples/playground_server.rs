@@ -9,7 +9,7 @@
 //! 6. Notifications
 //!
 //! Run with:
-//!   cargo run --example server_with_ui
+//!   cargo run --example playground_server
 //!
 //! Then open http://localhost:8080 in your browser!
 
@@ -84,7 +84,7 @@ impl Middleware for ResponseLoggingMiddleware {
 
         // Send to channel (ignore if channel is closed)
         let _ = self.log_tx.send(log_data);
-        
+
         Ok(())
     }
 }
@@ -233,11 +233,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("🚀 Starting JROW Server with Web UI...\n");
 
-    // Get the web-ui directory path
-    let web_ui_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("web-ui");
-    
+    // Get the playground directory path
+    let web_ui_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("playground");
+
     if !web_ui_dir.exists() {
-        eprintln!("❌ Error: web-ui directory not found at: {:?}", web_ui_dir);
+        eprintln!("❌ Error: playground directory not found at: {:?}", web_ui_dir);
         eprintln!("Make sure you're running from the project root directory.");
         std::process::exit(1);
     }
@@ -245,14 +245,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create HTTP routes for serving static files
     let index_route = warp::path::end()
         .and(warp::fs::file(web_ui_dir.join("index.html")));
-    
+
     let static_files = warp::fs::dir(web_ui_dir.clone());
 
     // Combine routes
     let http_routes = index_route.or(static_files);
 
     let http_addr: SocketAddr = "127.0.0.1:8080".parse()?;
-    
+
     println!("📡 Starting HTTP server for Web UI...");
     println!("   URL: http://{}", http_addr);
     println!();
@@ -290,7 +290,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create WebSocket address for JROW
     let ws_addr = "127.0.0.1:8081";
-    
+
     println!("🔌 Starting JROW WebSocket server...");
     println!("   WebSocket URL: ws://{}", ws_addr);
     println!();
@@ -364,7 +364,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let create_user_handler = from_fn(move |params: Option<serde_json::Value>| {
         let users = users_for_create.clone();
         let next_id = next_id_for_create.clone();
-        
+
         async move {
             let params: CreateUserParams = serde_json::from_value(
                 params.ok_or_else(|| jrow_core::Error::InvalidParams("Missing parameters".to_string()))?
@@ -372,7 +372,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             let mut users_lock = users.write().await;
             let mut next_id_lock = next_id.write().await;
-            
+
             let id = *next_id_lock;
             *next_id_lock += 1;
 
@@ -395,7 +395,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let users_for_get = app_state.users.clone();
     let get_user_handler = from_fn(move |params: Option<serde_json::Value>| {
         let users = users_for_get.clone();
-        
+
         async move {
             let params: GetUserParams = serde_json::from_value(
                 params.ok_or_else(|| jrow_core::Error::InvalidParams("Missing parameters".to_string()))?
@@ -411,7 +411,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let users_for_list = app_state.users.clone();
     let list_users_handler = from_fn(move |_params: Option<serde_json::Value>| {
         let users = users_for_list.clone();
-        
+
         async move {
             let users_lock = users.read().await;
             let user_list: Vec<User> = users_lock.values().cloned().collect();
@@ -465,7 +465,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     println!("📝 Client notification: {}", params);
                     params.to_string()
                 };
-                
+
                 // Publish to server.logs
                 let log_data = serde_json::json!({
                     "level": "info",
@@ -487,7 +487,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         async move {
             if let Some(params) = params {
                 println!("📊 Telemetry data received: {}", params);
-                
+
                 // Truncate large telemetry data
                 let params_str = params.to_string();
                 let display_params = if params_str.len() > 100 {
@@ -495,7 +495,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 } else {
                     params_str
                 };
-                
+
                 // Publish to server.logs
                 let log_data = serde_json::json!({
                     "level": "info",
@@ -524,7 +524,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "unknown".to_string()
             };
             println!("💓 Heartbeat received at {}", timestamp);
-            
+
             // Publish to server.logs
             let log_data = serde_json::json!({
                 "level": "debug",
@@ -534,7 +534,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "timestamp": chrono::Utc::now().to_rfc3339()
             });
             let _ = log_tx.send(log_data);
-            
+
             Ok(serde_json::Value::Null)
         }
     });
@@ -552,7 +552,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .and_then(|u| u.as_str())
                     .unwrap_or("anonymous");
                 println!("👤 User activity: {} performed '{}'", user, action);
-                
+
                 // Publish to server.logs
                 let log_data = serde_json::json!({
                     "level": "info",
@@ -568,7 +568,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Ok(serde_json::Value::Null)
         }
     });
-    
+
     // Create response logging middleware (uses the same channel as notification handlers)
     let response_logger = ResponseLoggingMiddleware::new(log_tx.clone());
 
@@ -689,7 +689,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Store server in Arc so we can share it across tasks
     let server = Arc::new(server);
-    
+
     // Clone Arc for background publishing tasks
     let server_for_stats = Arc::clone(&server);
     let server_for_time = Arc::clone(&server);
@@ -719,11 +719,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tokio::spawn(async move {
         let mut interval = interval(Duration::from_secs(5));
         let mut counter = 0;
-        
+
         loop {
             interval.tick().await;
             counter += 1;
-            
+
             let stats = serde_json::json!({
                 "update_number": counter,
                 "uptime_seconds": counter * 5,
@@ -746,10 +746,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Spawn task to publish current time periodically
     tokio::spawn(async move {
         let mut interval = interval(Duration::from_secs(10));
-        
+
         loop {
             interval.tick().await;
-            
+
             let time_data = serde_json::json!({
                 "utc": chrono::Utc::now().to_rfc3339(),
                 "unix_timestamp": chrono::Utc::now().timestamp(),
@@ -777,10 +777,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "Task finished",
         ];
         let mut event_index = 0;
-        
+
         loop {
             interval.tick().await;
-            
+
             let event_data = serde_json::json!({
                 "event": events[event_index],
                 "severity": if event_index % 2 == 0 { "info" } else { "success" },
@@ -798,7 +798,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     });
-    
+
     // Spawn task to publish server logs
     tokio::spawn(async move {
         let mut interval = interval(Duration::from_secs(8));
@@ -813,15 +813,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             ("success", "Cache sync completed"),
         ];
         let mut log_index = 0;
-        
+
         // Wait a bit before starting
         tokio::time::sleep(Duration::from_secs(5)).await;
-        
+
         loop {
             interval.tick().await;
-            
+
             let (level, message) = log_messages[log_index];
-            
+
             let log_data = serde_json::json!({
                 "level": level,
                 "message": message,
@@ -847,13 +847,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tokio::spawn(async move {
         let mut interval = interval(Duration::from_secs(12));
         let mut event_id = 1;
-        
+
         // Wait a bit before starting
         tokio::time::sleep(Duration::from_secs(7)).await;
-        
+
         loop {
             interval.tick().await;
-            
+
             let event_data = serde_json::json!({
                 "event_id": event_id,
                 "type": "persistent.event",
@@ -861,7 +861,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "priority": if event_id % 3 == 0 { "high" } else { "normal" },
                 "timestamp": chrono::Utc::now().to_rfc3339()
             });
-            
+
             event_id += 1;
 
             // Publish as persistent (will be stored in DB)
@@ -887,13 +887,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "Maintenance window scheduled",
         ];
         let mut notif_index = 0;
-        
+
         // Wait a bit before starting
         tokio::time::sleep(Duration::from_secs(10)).await;
-        
+
         loop {
             interval.tick().await;
-            
+
             let notification_data = serde_json::json!({
                 "notification_id": notif_index + 1,
                 "type": "persistent.notification",
@@ -901,7 +901,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "severity": "info",
                 "timestamp": chrono::Utc::now().to_rfc3339()
             });
-            
+
             notif_index = (notif_index + 1) % notifications.len();
 
             // Publish as persistent (will be stored in DB)
@@ -921,4 +921,3 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
-

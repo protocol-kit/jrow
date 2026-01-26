@@ -1,4 +1,4 @@
-# jrow - JSON-RPC over WebSocket Toolkit
+# JROW - JSON-RPC over WebSocket Toolkit
 
 [![Crates.io](https://img.shields.io/crates/v/jrow.svg)](https://crates.io/crates/jrow)
 [![Documentation](https://docs.rs/jrow/badge.svg)](https://docs.rs/jrow)
@@ -77,10 +77,9 @@ make clippy             # Run linter
 make run-simple         # Run simple_server example
 make run-pubsub         # Run pubsub example
 make run-batch          # Run batch example
-make run-server-ui      # Run server with embedded web UI (all-in-one!)
 
 # Web UI
-make run-web-ui         # Start web UI client on http://localhost:8000
+make run-playground         # Start web UI client on http://localhost:8000
 
 # Documentation
 make doc                # Generate Rust docs
@@ -240,17 +239,17 @@ make run-server-ui
 make run-simple
 
 # Terminal 2: Start web UI
-make run-web-ui
+make run-playground
 
 # Browser: Connect to ws://localhost:8080 and test!
 ```
 
 **Or open directly:**
 ```bash
-open web-ui/index.html
+open playground/index.html
 ```
 
-See [`web-ui/README.md`](web-ui/README.md) for detailed usage guide.
+See [`playground/README.md`](playground/README.md) for detailed usage guide.
 
 ## Advanced Usage
 

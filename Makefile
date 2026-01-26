@@ -93,26 +93,13 @@ run-publish-batch: ## Run publish_batch example
 	@echo "$(BLUE)Running publish_batch...$(NC)"
 	cargo run --example publish_batch
 
-run-server-ui: ## Run server with embedded web UI
+run-playground: ## Run server with embedded web UI
 	@echo "$(BLUE)Starting JROW server with web UI...$(NC)"
 	@echo "$(GREEN)Server will start on:$(NC)"
 	@echo "  HTTP: http://127.0.0.1:8080"
 	@echo "  WebSocket: ws://127.0.0.1:8081"
 	@echo ""
-	cargo run --example server_with_ui
-
-##@ Web UI
-
-run-web-ui: ## Start web UI client (requires Python 3)
-	@echo "$(BLUE)Starting JROW Web UI...$(NC)"
-	@echo "$(GREEN)Open http://localhost:8000 in your browser$(NC)"
-	@echo "$(YELLOW)Press Ctrl+C to stop$(NC)"
-	@cd web-ui && python3 -m http.server 8000
-
-run-web-ui-node: ## Start web UI client (requires Node.js)
-	@echo "$(BLUE)Starting JROW Web UI with npx serve...$(NC)"
-	@echo "$(GREEN)Server will open automatically$(NC)"
-	@cd web-ui && npx serve
+	cargo run --example playground_server
 
 ##@ Documentation
 
@@ -313,4 +300,3 @@ dev: ## Setup development environment
 
 quick: fmt check ## Quick check (format and check)
 	@echo "$(GREEN)Quick check complete!$(NC)"
-

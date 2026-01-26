@@ -255,6 +255,3 @@ cargo run
 **Date:** 2025-12-27  
 **AsyncAPI:** 3.0.0  
 **Rust Version:** 1.75+
-
-
-

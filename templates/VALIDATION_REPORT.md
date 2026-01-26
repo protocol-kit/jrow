@@ -351,6 +351,3 @@ The Schema-First AsyncAPI template redesign is:
 **Date:** 2025-12-27  
 **Template Version:** Schema-First v1.0  
 **AsyncAPI Version:** 3.0.0
-
-
-

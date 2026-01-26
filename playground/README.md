@@ -23,10 +23,10 @@ The easiest way - runs both JROW server and web UI with one command:
 
 ```bash
 # From project root
-make run-server-ui
+make run-playground
 
 # Or directly:
-cargo run --example server_with_ui
+cargo run --example playground_server
 
 # Open http://127.0.0.1:8080 in your browser
 # UI automatically connects to ws://127.0.0.1:8081
@@ -40,13 +40,13 @@ If you have a JROW server running and just want to connect:
 
 ```bash
 # Open index.html in your browser
-open web-ui/index.html
+open playground/index.html
 
 # Or on Linux
-xdg-open web-ui/index.html
+xdg-open playground/index.html
 
 # Or on Windows
-start web-ui/index.html
+start playground/index.html
 ```
 
 **Note:** Some browsers may restrict WebSocket connections from `file://` URLs. If you have issues, use Option 3 or 4.
@@ -54,7 +54,7 @@ start web-ui/index.html
 ### Option 3: Python HTTP Server
 
 ```bash
-cd web-ui
+cd playground
 python3 -m http.server 8000
 ```
 
@@ -63,7 +63,7 @@ Then open http://localhost:8000 in your browser.
 ### Option 4: Node.js HTTP Server
 
 ```bash
-cd web-ui
+cd playground
 npx serve
 ```
 
@@ -72,7 +72,7 @@ Then open http://localhost:3000 in your browser.
 ### Option 5: Make Command (from project root)
 
 ```bash
-make run-web-ui
+make run-playground
 ```
 
 ## Usage Guide
@@ -169,7 +169,7 @@ Go to the **Server Logs** tab:
 - System resource usage
 - Request processing activity
 
-**Note:** The server must publish to the `server.logs` topic for this feature to work. The `server_with_ui` example automatically does this.
+**Note:** The server must publish to the `server.logs` topic for this feature to work. The `playground_server` example automatically does this.
 
 ### 7. View Message Log
 
@@ -189,7 +189,7 @@ Go to the **Console** tab:
 cargo run --example simple_server
 
 # Terminal 2: Start web UI (if using HTTP server)
-cd web-ui
+cd playground
 python3 -m http.server 8000
 
 # Open browser to http://localhost:8000
@@ -357,4 +357,3 @@ This web client is part of the JROW project and is dual-licensed:
 ## Feedback
 
 Found a bug or have a feature request? Open an issue on GitHub!
-

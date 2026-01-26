@@ -58,7 +58,7 @@ JROW includes 23 comprehensive examples demonstrating all features:
 
 ### Web UI
 
-- **`server_with_ui.rs`** - Full-featured server with embedded web UI (all-in-one demo)
+- **`playgroud_server.rs`** - Full-featured server with embedded web UI (all-in-one demo)
 
 ## Building the Project
 
@@ -176,4 +176,3 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 - Read the full [README.md](README.md)
 - Explore the [examples/](examples/) directory
 - Check the API documentation: `cargo doc --open`
-
