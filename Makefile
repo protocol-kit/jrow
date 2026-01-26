@@ -65,34 +65,6 @@ examples: build ## Build all examples
 	@echo "$(BLUE)Building examples...$(NC)"
 	cargo build --examples
 
-run-simple: ## Run simple_server example
-	@echo "$(BLUE)Running simple_server...$(NC)"
-	cargo run --example simple_server
-
-run-client: ## Run simple_client example
-	@echo "$(BLUE)Running simple_client...$(NC)"
-	cargo run --example simple_client
-
-run-bidirectional: ## Run bidirectional example
-	@echo "$(BLUE)Running bidirectional...$(NC)"
-	cargo run --example bidirectional
-
-run-pubsub: ## Run pubsub example
-	@echo "$(BLUE)Running pubsub...$(NC)"
-	cargo run --example pubsub
-
-run-batch: ## Run batch example
-	@echo "$(BLUE)Running batch...$(NC)"
-	cargo run --example batch
-
-run-pubsub-batch: ## Run pubsub_batch example
-	@echo "$(BLUE)Running pubsub_batch...$(NC)"
-	cargo run --example pubsub_batch
-
-run-publish-batch: ## Run publish_batch example
-	@echo "$(BLUE)Running publish_batch...$(NC)"
-	cargo run --example publish_batch
-
 run-playground: ## Run server with embedded web UI
 	@echo "$(BLUE)Starting JROW server with web UI...$(NC)"
 	@echo "$(GREEN)Server will start on:$(NC)"
