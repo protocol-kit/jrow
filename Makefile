@@ -83,23 +83,6 @@ doc-all: ## Generate documentation for all dependencies
 	@echo "$(BLUE)Generating documentation (with deps)...$(NC)"
 	cargo doc --open
 
-asyncapi-validate: ## Validate AsyncAPI specification
-	@echo "$(BLUE)Validating AsyncAPI spec...$(NC)"
-	@command -v asyncapi >/dev/null 2>&1 || { echo "$(YELLOW)asyncapi CLI not found. Install with: npm install -g @asyncapi/cli$(NC)"; exit 1; }
-	asyncapi validate templates/asyncapi.yaml
-
-asyncapi-html: ## Generate AsyncAPI HTML documentation
-	@echo "$(BLUE)Generating AsyncAPI HTML docs...$(NC)"
-	@command -v asyncapi >/dev/null 2>&1 || { echo "$(YELLOW)asyncapi CLI not found. Install with: npm install -g @asyncapi/cli$(NC)"; exit 1; }
-	asyncapi generate fromTemplate templates/asyncapi.yaml @asyncapi/html-template -o docs/asyncapi
-	@echo "$(GREEN)Documentation generated at: docs/asyncapi/index.html$(NC)"
-
-asyncapi-md: ## Generate AsyncAPI Markdown documentation
-	@echo "$(BLUE)Generating AsyncAPI Markdown docs...$(NC)"
-	@command -v asyncapi >/dev/null 2>&1 || { echo "$(YELLOW)asyncapi CLI not found. Install with: npm install -g @asyncapi/cli$(NC)"; exit 1; }
-	asyncapi generate fromTemplate templates/asyncapi.yaml @asyncapi/markdown-template -o docs/asyncapi.md
-	@echo "$(GREEN)Documentation generated at: docs/asyncapi.md$(NC)"
-
 ##@ CI/CD
 
 ci-check: fmt-check clippy test ## Run all CI checks
