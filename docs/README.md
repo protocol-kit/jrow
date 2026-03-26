@@ -71,7 +71,6 @@ This directory contains comprehensive documentation for JROW features and implem
 - **[publish-batch-implementation.md](publish-batch-implementation.md)** - Batch publishing
 - **[pubsub-implementation.md](pubsub-implementation.md)** - Pub/sub system implementation
 - **[opentelemetry-implementation.md](opentelemetry-implementation.md)** - OpenTelemetry integration details
-- **[deploy-script-template.md](deploy-script-template.md)** - Deployment script templates
 - **[implementation-summary.md](implementation-summary.md)** - Overall implementation summary
 
 ## Quick Links
