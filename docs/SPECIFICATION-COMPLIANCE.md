@@ -283,12 +283,6 @@ The JROW implementation includes several features that exceed the specification:
 - **Exports:** OTLP, Jaeger, Prometheus
 - **Files:** `jrow-core/src/observability.rs`
 
-### 4. Deployment Templates
-- **Status:** ✅ Implemented
-- **Details:** Tera-based templates for Docker, Kubernetes, scripts
-- **Generator:** CLI tool for customization
-- **Files:** `templates/`, `tools/template-gen/`
-
 ---
 
 ## Compliance Summary by Category

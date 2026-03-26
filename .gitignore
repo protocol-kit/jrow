@@ -18,9 +18,6 @@ Thumbs.db
 
 .history/
 
-# Generated deployment files (but keep templates/deploy/)
-/deploy/
-
 # Database files (sled)
 data/
 *.db/

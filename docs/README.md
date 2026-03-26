@@ -78,7 +78,6 @@ This directory contains comprehensive documentation for JROW features and implem
 - [Main README](../README.md) - Project overview and quick start
 - [Quick Start Guide](../QUICKSTART.md) - Get started quickly
 - [Examples](../examples/) - Working code examples
-- [Templates](../templates/README.md) - Project templates and deployment configs
 
 ## Documentation Index
 
@@ -102,7 +101,7 @@ This directory contains comprehensive documentation for JROW features and implem
 - **Choosing Technology**: [use-cases.md](use-cases.md) - JROW vs NATS vs Kafka comparison
 - **Protocol Reference**: [SPECIFICATION.md](SPECIFICATION.md) - Formal protocol specification
 - **Getting Started**: [QUICKSTART.md](../QUICKSTART.md)
-- **Production Deployment**: [observability.md](observability.md), [Templates](../templates/README.md)
+- **Production Deployment**: [observability.md](observability.md)
 - **Advanced Features**: [middleware.md](middleware.md), [reconnection.md](reconnection.md)
 
 ## Contributing

@@ -312,7 +312,6 @@ let result: i32 = client.request("add", params).await?;
 - ✅ [middleware.md](middleware.md) - Middleware system guide
 - ✅ [batch-implementation.md](batch-implementation.md) - Batch feature details
 - ✅ [pubsub-implementation.md](pubsub-implementation.md) - Pub/sub details
-- ✅ templates/README.md - Template system guide
 - ✅ Inline code documentation
 - ✅ 11 example applications
 - ✅ Comprehensive test coverage

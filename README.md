@@ -965,7 +965,7 @@ JROW includes comprehensive OpenTelemetry support for production monitoring.
 
 ```bash
 # Start observability stack (Jaeger, Prometheus, Grafana)
-docker-compose -f templates/deploy/observability/docker-compose.observability.yml up -d
+docker-compose -f deploy/observability/docker-compose.observability.yml up -d
 
 # Enable in server
 let server = ServerBuilder::new()

@@ -62,7 +62,7 @@ graph TB
 
 ```bash
 # Start Jaeger, Prometheus, and Grafana
-docker-compose -f templates/deploy/observability/docker-compose.observability.yml up -d
+docker-compose -f deploy/observability/docker-compose.observability.yml up -d
 
 # Access UIs:
 # - Jaeger: http://localhost:16686
@@ -313,7 +313,7 @@ JROW uses structured JSON logging with trace context:
 
 ```bash
 # Terminal 1: Start observability stack
-docker-compose -f templates/deploy/observability/docker-compose.observability.yml up
+docker-compose -f deploy/observability/docker-compose.observability.yml up
 
 # Terminal 2: Run server
 cargo run --example observability_server
@@ -495,4 +495,3 @@ async fn my_function() {
 ## License
 
 Observability features are part of JROW and follow the same license.
-

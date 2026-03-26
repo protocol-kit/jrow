@@ -133,7 +133,7 @@ Created 3 comprehensive examples:
      - Pub/sub with tracing
      - Reconnection with spans
 
-3. **Docker Compose Stack (`templates/deploy/observability/docker-compose.observability.yml`)**
+3. **Docker Compose Stack (`deploy/observability/docker-compose.observability.yml`)**
    - Jaeger (traces) - http://localhost:16686
    - Prometheus (metrics) - http://localhost:9090
    - Grafana (dashboards) - http://localhost:3000
@@ -208,7 +208,7 @@ Created 3 comprehensive examples:
 ### Starting Observability Stack
 
 ```bash
-docker-compose -f templates/deploy/observability/docker-compose.observability.yml up -d
+docker-compose -f deploy/observability/docker-compose.observability.yml up -d
 ```
 
 ### Running Examples
@@ -290,4 +290,3 @@ JROW uses standard OTLP, compatible with:
 ## License
 
 Observability features are part of JROW and follow the same license.
-
