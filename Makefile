@@ -1,4 +1,4 @@
-.PHONY: help build test check fmt clippy clean run doc examples docker k8s asyncapi deploy
+.PHONY: help build test check fmt clippy clean run doc examples docker k8s deploy
 
 # Default target
 .DEFAULT_GOAL := help
@@ -57,7 +57,6 @@ clippy-fix: ## Auto-fix clippy warnings
 clean: ## Clean build artifacts
 	@echo "$(BLUE)Cleaning build artifacts...$(NC)"
 	cargo clean
-	rm -rf docs/asyncapi
 
 ##@ Examples
 

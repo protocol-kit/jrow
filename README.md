@@ -83,7 +83,6 @@ make run-playground         # Start web UI client on http://localhost:8000
 
 # Documentation
 make doc                # Generate Rust docs
-make asyncapi-html      # Generate AsyncAPI docs
 
 # All-in-one
 make all                # Build, test, and lint
@@ -846,60 +845,13 @@ The toolkit strictly follows the [JSON-RPC 2.0 specification](https://www.jsonrp
 - `-32602` Invalid params
 - `-32603` Internal error
 
-## API Documentation
-
-JROW includes customizable [AsyncAPI 3.0](https://www.asyncapi.com/) specification templates for documenting your WebSocket JSON-RPC API.
-
 ### Features
 
 - **Customizable Templates**: Define your RPC methods, topics, and server configurations
 - **Complete Documentation**: All RPC methods, notifications, and pub/sub topics
-- **Interactive Tools**: AsyncAPI Studio support
 - **Code Generation**: Generate client SDKs in multiple languages
-- **Industry Standard**: AsyncAPI 3.0 specification
 
 ### Quick Start
-
-1. **Configure your API** in `jrow-template.toml`:
-
-```toml
-[asyncapi]
-production_host = "api.example.com"
-production_port = 443
-
-[[asyncapi.methods]]
-name = "getUserProfile"
-example_params = '{"userId": "123"}'
-example_result = '{"id": "123", "name": "Alice"}'
-
-[[asyncapi.topics]]
-name = "chat.messages"
-example_params = '{"user": "alice", "message": "Hello"}'
-```
-
-2. **Generate the specification**:
-
-```bash
-make template-generate
-```
-
-3. **Use the AsyncAPI tools**:
-
-```bash
-# Validate specification
-asyncapi validate templates/asyncapi.yaml
-
-# Generate HTML documentation
-asyncapi generate fromTemplate templates/asyncapi.yaml @asyncapi/html-template -o docs/
-
-# Start AsyncAPI Studio
-asyncapi start studio templates/asyncapi.yaml
-
-# Generate client code
-asyncapi generate fromTemplate templates/asyncapi.yaml @asyncapi/nodejs-template -o client/
-```
-
-See [`templates/README.md`](templates/README.md) for detailed AsyncAPI documentation.
 
 ## Examples
 

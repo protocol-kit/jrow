@@ -289,12 +289,6 @@ The JROW implementation includes several features that exceed the specification:
 - **Generator:** CLI tool for customization
 - **Files:** `templates/`, `tools/template-gen/`
 
-### 5. AsyncAPI Documentation
-- **Status:** ✅ Implemented
-- **Details:** AsyncAPI 3.0 specification templates
-- **Features:** Method definitions, topic schemas, code generation support
-- **Files:** `templates/asyncapi.yaml.tera`
-
 ---
 
 ## Compliance Summary by Category
@@ -460,4 +454,3 @@ No missing features or non-compliant behaviors identified.
 **Report Generated:** December 26, 2025  
 **Reviewed By:** AI Analysis  
 **Next Review:** Upon specification updates
-

@@ -71,7 +71,6 @@ This directory contains comprehensive documentation for JROW features and implem
 - **[publish-batch-implementation.md](publish-batch-implementation.md)** - Batch publishing
 - **[pubsub-implementation.md](pubsub-implementation.md)** - Pub/sub system implementation
 - **[opentelemetry-implementation.md](opentelemetry-implementation.md)** - OpenTelemetry integration details
-- **[asyncapi-template-implementation.md](asyncapi-template-implementation.md)** - AsyncAPI templates
 - **[deploy-script-template.md](deploy-script-template.md)** - Deployment script templates
 - **[implementation-summary.md](implementation-summary.md)** - Overall implementation summary
 
@@ -98,7 +97,6 @@ This directory contains comprehensive documentation for JROW features and implem
 | Middleware | [middleware.md](middleware.md) | Built-in |
 | Reconnection | [reconnection.md](reconnection.md) | Built-in |
 | Observability | [observability.md](observability.md) | [opentelemetry-implementation.md](opentelemetry-implementation.md) |
-| AsyncAPI | [Templates README](../templates/README.md) | [asyncapi-template-implementation.md](asyncapi-template-implementation.md) |
 
 ### By Use Case
 
@@ -107,7 +105,6 @@ This directory contains comprehensive documentation for JROW features and implem
 - **Getting Started**: [QUICKSTART.md](../QUICKSTART.md)
 - **Production Deployment**: [observability.md](observability.md), [Templates](../templates/README.md)
 - **Advanced Features**: [middleware.md](middleware.md), [reconnection.md](reconnection.md)
-- **API Documentation**: [asyncapi-template-implementation.md](asyncapi-template-implementation.md)
 
 ## Contributing
 
@@ -116,4 +113,3 @@ When adding new documentation:
 2. Add an entry to this README
 3. Update links in related documents
 4. Include code examples where applicable
-
